@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Planificación HD – Valdishopper</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+:root{
+  --bg:#f0f2f5;--bg2:#e8eaed;
+  --card:#ffffff;--card2:#f8f9fa;--border:#e2e5ea;
+  --accent:#e91e8c;--accent2:#f06292;--accent-glow:rgba(233,30,140,0.15);
+  --topbar:#0f1e36;
+  --white:#ffffff;--text:#1a2332;--text-dim:#5a6a7e;--text-muted:#9baabb;
+  --green:#00c07f;--amber:#f59e0b;--red:#f43f5e;--blue:#2563eb;--purple:#8b5cf6;
+  --hover:#f5f7fa;
+  --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  background:var(--bg);
+  color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;min-height:100vh;
+}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px}
+
+/* ── HEADER ── */
+.topbar{background:var(--topbar);border-bottom:1px solid rgba(255,255,255,0.08);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-logo{font-size:18px;font-weight:900;letter-spacing:-.02em;color:#ffffff;line-height:1}
+.brand-logo span{color:var(--accent)}
+.brand-sep{width:1px;height:24px;background:var(--border)}
+.brand-title{font-size:13px;font-weight:700;color:rgba(255,255,255,0.6);letter-spacing:.02em}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(34,211,163,0.2);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(34,211,163,0.2)}50%{box-shadow:0 0 0 6px rgba(34,211,163,0.06)}}
+.last-upd{font-size:11px;color:rgba(255,255,255,0.45)}
+.btn-rf{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .2s;letter-spacing:.02em;display:flex;align-items:center;gap:6px}
+.btn-rf:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:0 4px 16px var(--accent-glow)}
+.btn-rf:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+.wrap{max-width:1400px;margin:0 auto;padding:24px 24px 40px}
+
+/* ── TABS ── */
+.tabs-nav{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:24px}
+@media(max-width:960px){.tabs-nav{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:560px){.tabs-nav{grid-template-columns:repeat(2,1fr)}}
+.tab-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:14px 8px;min-height:82px;background:#ffffff;border:1px solid var(--border);border-radius:var(--r);color:var(--text-dim);font-family:'Plus Jakarta Sans',sans-serif;font-size:10px;font-weight:700;cursor:pointer;transition:all .2s;text-align:center;position:relative;overflow:hidden;letter-spacing:.04em;text-transform:uppercase;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
+.tab-btn::after{content:'';position:absolute;bottom:0;left:12px;right:12px;height:2px;background:var(--accent);border-radius:2px;transform:scaleX(0);transition:transform .2s;transform-origin:left}
+.tab-btn:hover{color:var(--text);border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 12px rgba(233,30,140,0.1)}
+.tab-btn.active{color:var(--accent);background:#fff0f6;border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 16px var(--accent-glow)}
+.tab-btn.active::after{transform:scaleX(1)}
+.tab-icon{font-size:20px;line-height:1}
+.tab-label{font-size:10px;font-weight:800;line-height:1.2}
+.tab-sub{font-size:9px;font-weight:400;color:var(--text-muted);line-height:1.2;text-transform:none;letter-spacing:0}
+.tab-btn.active .tab-sub{color:var(--accent2)}
+
+.tab-pane{display:none}
+.tab-pane.active{display:block;animation:fadeUp .25s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── KPI STRIP ── */
+.kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:18px}
+.kpi{background:#ffffff;border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+.kpi:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.1)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r) var(--r) 0 0}
+.kpi.k1::before{background:linear-gradient(90deg,var(--blue),var(--accent2))}
+.kpi.k2::before{background:linear-gradient(90deg,var(--green),#38ffb6)}
+.kpi.k3::before{background:linear-gradient(90deg,var(--red),#ff8c00)}
+.kpi.k4::before{background:linear-gradient(90deg,var(--accent),var(--blue))}
+.kpi.k5::before{background:linear-gradient(90deg,var(--amber),var(--green))}
+.kpi.k6::before{background:linear-gradient(90deg,var(--purple),var(--blue))}
+.kpi-label{font-size:9px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.kpi-val{font-size:28px;font-weight:900;color:var(--text);line-height:1;letter-spacing:-.03em}
+.kpi-sub{font-size:11px;color:var(--text-muted);margin-top:4px}
+.kpi-icon{position:absolute;right:14px;top:14px;font-size:22px;opacity:.15}
+
+/* ── CARDS ── */
+.card{background:#ffffff;border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+.card-title{font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card-title span{color:var(--text-muted);font-weight:400;font-size:10px;text-transform:none;letter-spacing:0}
+
+/* ── GRID ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+@media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr}}
+
+/* ── FILTERS ── */
+.filter-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.filter-row label{font-size:10px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em}
+select{font-size:12px;font-family:'Plus Jakarta Sans',sans-serif;border:1px solid var(--border);border-radius:8px;padding:6px 12px;background:#ffffff;color:var(--text);outline:none;cursor:pointer;transition:border-color .2s;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
+select:focus{border-color:var(--accent);outline:none}
+select option{background:#ffffff;color:var(--text)}
+.search-inp{background:#ffffff;border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:12px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;width:200px;transition:border-color .2s;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
+.search-inp::placeholder{color:#b0bec5}
+.search-inp:focus{border-color:var(--accent);outline:none}
+
+/* ── TABLES ── */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{font-size:10px;font-weight:800;color:var(--text-muted);padding:10px 14px;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.07em;text-align:left;white-space:nowrap;background:#f8f9fa}
+td{padding:9px 14px;border-bottom:1px solid #f0f2f5;color:var(--text);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f8f9fb}
+td.mono{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;letter-spacing:.02em}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;font-size:10px;padding:3px 9px;border-radius:99px;font-weight:700;white-space:nowrap;letter-spacing:.02em}
+.b-green{background:rgba(34,211,163,0.1);color:var(--green);border:1px solid rgba(34,211,163,0.25)}
+.b-red{background:rgba(244,63,94,0.12);color:var(--red);border:1px solid rgba(244,63,94,0.28)}
+.b-amber{background:rgba(245,158,11,0.12);color:var(--amber);border:1px solid rgba(245,158,11,0.28)}
+.b-blue{background:rgba(59,130,246,0.1);color:var(--blue);border:1px solid rgba(59,130,246,0.25)}
+.b-gray{background:rgba(255,255,255,0.05);color:var(--text-dim);border:1px solid rgba(255,255,255,0.1)}
+.b-purple{background:rgba(139,92,246,0.1);color:var(--purple);border:1px solid rgba(139,92,246,0.25)}
+
+/* ── FLE CARDS ── */
+.fle-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.fle-card{background:#ffffff;border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:all .2s;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+.fle-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 6px 20px rgba(233,30,140,0.12)}
+.fle-head{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.fle-ppu{font-size:15px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--white)}
+.fle-items{padding:10px 16px}
+.fle-item{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid #f0f2f5;font-size:12px}
+.fle-item:last-child{border-bottom:none}
+.fle-item-text{color:var(--text-dim);flex:1}
+
+/* ── HEATMAP ── */
+.hm-wrap{overflow-x:auto;padding-bottom:8px}
+.hm-header{font-size:8px;font-weight:700;color:var(--text-muted);text-align:center;padding:3px 0;width:22px}
+.hm-name{font-size:10px;color:var(--text);padding:3px 8px;white-space:nowrap;display:flex;align-items:center;min-width:130px;max-width:130px;font-weight:600}
+.hm-cell{width:22px;height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;cursor:default;transition:transform .1s}
+.hm-cell:hover{transform:scale(1.3)}
+.hm-zero{background:#f0f2f5;color:#cdd5df}
+
+/* ── RANKING ── */
+.rank-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;background:#fff;border:1px solid var(--border);margin-bottom:8px;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
+.rank-item:hover{border-color:var(--accent);background:#fff0f6}
+.rank-num{font-size:18px;font-weight:900;color:var(--text-muted);width:28px;text-align:center;font-family:'JetBrains Mono',monospace}
+.rank-num.gold{color:#ffd700}
+.rank-num.silver{color:#c0c0c0}
+.rank-num.bronze{color:#cd7f32}
+.rank-info{flex:1}
+.rank-name{font-size:13px;font-weight:700;color:var(--text);font-family:'JetBrains Mono',monospace}
+.rank-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
+.rank-bar-wrap{flex:1;height:6px;background:#e8eaed;border-radius:3px;overflow:hidden;max-width:100px}
+.rank-bar{height:100%;border-radius:3px}
+
+/* ── MISC ── */
+.empty-msg{font-size:13px;color:var(--text-muted);padding:14px 0;text-align:center}
+.notice{font-size:12px;color:var(--amber);background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.18);border-radius:8px;padding:10px 14px;margin-bottom:14px}
+#loading-overlay{position:fixed;inset:0;background:#f0f2f5;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:16px}
+.loader-ring{width:48px;height:48px;border-radius:50%;border:3px solid rgba(233,30,140,0.15);border-top-color:var(--accent);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-text{font-size:13px;color:var(--text-muted);font-weight:600}
+#loading-overlay.hidden{display:none}
+.chart-wrap{position:relative;height:240px}
+.chart-wrap-tall{position:relative;height:300px}
+.sala-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+</style>
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="loader-ring"></div>
+  <div class="loader-text" id="loading-text">Conectando con Google Sheets…</div>
+</div>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-logo">VALDI<span>SHOPPER</span></div>
+    <div class="brand-sep"></div>
+    <div class="brand-title">Panel Planificación HD</div>
+  </div>
+  <div class="topbar-right">
+    <div class="live-dot"></div>
+    <span class="last-upd" id="last-update">—</span>
+    <button class="btn-rf" id="btn-refresh" onclick="loadAllData()">⟳ Actualizar</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="tabs-nav">
+    <button class="tab-btn active" data-tab="mapeo_flota" onclick="switchTab('mapeo_flota',this)">
+      <span class="tab-icon">🚛</span><span class="tab-label">Mapeo Flota</span><span class="tab-sub">Stock · estado · local</span>
+    </button>
+    <button class="tab-btn" data-tab="check_fle" onclick="switchTab('check_fle',this)">
+      <span class="tab-icon">⚡</span><span class="tab-label">Check FLE</span><span class="tab-sub">Flota Eléctrica</span>
+    </button>
+    <button class="tab-btn" data-tab="flota_vs" onclick="switchTab('flota_vs',this)">
+      <span class="tab-icon">🚐</span><span class="tab-label">Flota FH</span><span class="tab-sub">Mapeo · branding</span>
+    </button>
+    <button class="tab-btn" data-tab="revision_rs" onclick="switchTab('revision_rs',this)">
+      <span class="tab-icon">📋</span><span class="tab-label">Revisión RS</span><span class="tab-sub">Res. sanitaria</span>
+    </button>
+    <button class="tab-btn" data-tab="cit_fh" onclick="switchTab('cit_fh',this)">
+      <span class="tab-icon">📅</span><span class="tab-label">Citaciones FH</span><span class="tab-sub">73 vehículos</span>
+    </button>
+    <button class="tab-btn" data-tab="cit_fld" onclick="switchTab('cit_fld',this)">
+      <span class="tab-icon">🗓️</span><span class="tab-label">Citaciones FLD</span><span class="tab-sub">47 vehículos</span>
+    </button>
+  </div>
+
+  <!-- MAPEO DE FLOTA -->
+  <div id="pane-mapeo_flota" class="tab-pane active">
+    <div class="kpi-strip" id="mf-kpis"></div>
+    <div class="card">
+      <div class="card-title">🔎 Filtros</div>
+      <div class="filter-row">
+        <label>Local:</label><select id="mf-local" onchange="renderMapeoFlota()"><option value="ALL">Todos</option></select>
+        <label>Tipo:</label><select id="mf-tipo" onchange="renderMapeoFlota()"><option value="ALL">Todos</option></select>
+        <label>Estatus:</label><select id="mf-status" onchange="renderMapeoFlota()"><option value="ALL">Todos</option></select>
+        <input class="search-inp" id="mf-search" placeholder="🔍 Buscar patente…" oninput="renderMapeoFlota()">
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">📊 Activos vs No Operativos por Local</div>
+        <div class="chart-wrap"><canvas id="mf-chart-local"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🥧 Distribución por Tipo de Flota</div>
+        <div class="chart-wrap"><canvas id="mf-chart-tipo"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📋 Detalle de Flota <span id="mf-count-label"></span></div>
+      <div class="tbl-wrap">
+        <table><thead><tr><th>Tipo</th><th>Local</th><th>Patente</th><th>Estatus</th><th>Observación</th></tr></thead>
+        <tbody id="mf-tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHECK FLE -->
+  <div id="pane-check_fle" class="tab-pane">
+    <div class="kpi-strip" id="fle-kpis"></div>
+    <div class="filter-row">
+      <label>Estado:</label>
+      <select id="fle-filter" onchange="renderFLE()">
+        <option value="ALL">Todos</option><option value="LISTO">Listo</option><option value="PENDIENTE">Pendiente</option>
+      </select>
+    </div>
+    <div class="fle-grid" id="fle-cards"></div>
+  </div>
+
+  <!-- FLOTA FH -->
+  <div id="pane-flota_vs" class="tab-pane">
+    <div class="kpi-strip" id="fh-kpis"></div>
+    <div class="filter-row">
+      <label>Local:</label><select id="fh-local" onchange="renderFH()"><option value="ALL">Todos</option></select>
+      <label>Status:</label>
+      <select id="fh-status" onchange="renderFH()">
+        <option value="ALL">Todos</option><option value="Activa">Activa</option><option value="Panne">Panne</option>
+      </select>
+      <input class="search-inp" id="fh-search" placeholder="🔍 Buscar patente…" oninput="renderFH()">
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">📊 Cumplimiento por Ítem</div>
+        <div class="chart-wrap"><canvas id="fh-items-chart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🏪 Resumen por Local</div>
+        <div id="fh-by-local"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🚐 Flota FH – Estado Operacional</div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>Local</th><th>Patente</th><th>Status</th><th>Telemetría</th>
+          <th>Branding</th><th>RS</th><th>Lamas</th><th>Separador</th><th>SAC</th>
+        </tr></thead><tbody id="fh-tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- REVISIÓN RS -->
+  <div id="pane-revision_rs" class="tab-pane">
+    <div class="kpi-strip" id="rs-kpis"></div>
+    <div class="filter-row">
+      <label>Local:</label><select id="rs-local" onchange="renderRS()"><option value="ALL">Todos</option></select>
+      <label>Estatus:</label>
+      <select id="rs-estatus" onchange="renderRS()">
+        <option value="ALL">Todos</option><option value="Pendiente">Pendiente</option><option value="Listo">Listo</option>
+      </select>
+      <input class="search-inp" id="rs-search" placeholder="🔍 Buscar patente…" oninput="renderRS()">
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">📄 Resoluciones Sanitarias</div>
+        <div class="tbl-wrap">
+          <table><thead><tr><th>Local</th><th>Patente</th><th>Estatus</th><th>Observación</th></tr></thead>
+          <tbody id="rs-tbody"></tbody></table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 Estado por Local</div>
+        <div class="chart-wrap"><canvas id="rs-chart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CITACIONES FH -->
+  <div id="pane-cit_fh" class="tab-pane">
+    <div class="kpi-strip" id="citfh-kpis"></div>
+    <div class="filter-row">
+      <label>Local / Sala:</label><select id="citfh-local" onchange="renderCit('fh')"><option value="ALL">Todos</option></select>
+      <input class="search-inp" id="citfh-search" placeholder="🔍 Buscar patente…" oninput="renderCit('fh')">
+    </div>
+    <div class="grid3" style="margin-bottom:14px">
+      <div class="card">
+        <div class="card-title">🏆 Más Activos (Top 5)</div>
+        <div id="citfh-rank-top"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📉 Menos Activos (Bottom 5)</div>
+        <div id="citfh-rank-bot"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🏪 Salidas por Sala</div>
+        <div class="chart-wrap"><canvas id="citfh-sala-chart"></canvas></div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-bottom:14px">
+      <div class="card">
+        <div class="card-title">📆 Actividad por Día de la Semana</div>
+        <div class="chart-wrap"><canvas id="citfh-dist-chart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🥧 Distribución por Sala</div>
+        <div class="chart-wrap"><canvas id="citfh-pie-chart"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📅 Mapa de Calor – Actividad FH Mayo 2026</div>
+      <p style="font-size:11px;color:var(--text-muted);margin-bottom:12px">■ = día activo &nbsp;·&nbsp; · = sin actividad</p>
+      <div class="hm-wrap"><div id="citfh-heatmap"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📋 Detalle por Patente</div>
+      <div class="tbl-wrap">
+        <table><thead><tr><th>#</th><th>Local/Sala</th><th>Patente</th><th>Días Activos</th><th>Total Días</th><th>% Actividad</th><th>Distribución</th></tr></thead>
+        <tbody id="citfh-tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CITACIONES FLD -->
+  <div id="pane-cit_fld" class="tab-pane">
+    <div class="kpi-strip" id="citfld-kpis"></div>
+    <div class="filter-row">
+      <label>Local / Sala:</label><select id="citfld-local" onchange="renderCit('fld')"><option value="ALL">Todos</option></select>
+      <input class="search-inp" id="citfld-search" placeholder="🔍 Buscar patente…" oninput="renderCit('fld')">
+    </div>
+    <div class="grid3" style="margin-bottom:14px">
+      <div class="card">
+        <div class="card-title">🏆 Más Activos (Top 5)</div>
+        <div id="citfld-rank-top"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📉 Menos Activos (Bottom 5)</div>
+        <div id="citfld-rank-bot"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🏪 Salidas por Sala</div>
+        <div class="chart-wrap"><canvas id="citfld-sala-chart"></canvas></div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-bottom:14px">
+      <div class="card">
+        <div class="card-title">📆 Actividad por Día de la Semana</div>
+        <div class="chart-wrap"><canvas id="citfld-dist-chart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🥧 Distribución por Sala</div>
+        <div class="chart-wrap"><canvas id="citfld-pie-chart"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📅 Mapa de Calor – Actividad FLD/MM Mayo 2026</div>
+      <p style="font-size:11px;color:var(--text-muted);margin-bottom:12px">■ = día activo &nbsp;·&nbsp; · = sin actividad</p>
+      <div class="hm-wrap"><div id="citfld-heatmap"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📋 Detalle por Patente</div>
+      <div class="tbl-wrap">
+        <table><thead><tr><th>#</th><th>Local/Sala</th><th>Patente</th><th>Días Activos</th><th>Total Días</th><th>% Actividad</th><th>Distribución</th></tr></thead>
+        <tbody id="citfld-tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SHEET_ID='1Hx714kR2Pszd5RogOu0eQslmqpkw5nHDWiVaAg9rtmw';
+const TABS={
+  mapeo:'Mapeo de flota',
+  fle:'Check FLE',
+  fh:'Flota actual VS',
+  rs:'Revision RS',
+  cit_fh:'Citaciones FH',
+  cit_fld:'Citaciones FLD '
+};
+
+// Encabezados reales de las columnas de días en el Sheet
+const FH_DAY_HEADERS=["Vie 01", "Sáb 02", "Dom 03", "Lun 04", "Mar 05", "Mié 06", "Jue 07", "Vie 08", "Sáb 09", "Dom 10", "Lun 11", "Mar 12", "Mié 13", "Jue 14", "Vie 15", "Sáb 16", "Dom 17", "Lun 18", "Mar 19", "Mié 20", "Jue 21", "Vie 22", "Sáb 23", "Dom 24", "Lun 25", "Mar 26"];
+const FLD_DAY_HEADERS=["Vie 01", "Sáb 02", "Dom 03", "Lun 04", "Mar 05", "Mié 06", "Jue 07", "Vie 08", "Sáb 09", "Dom 10", "Lun 11", "Mar 12", "Mié 13", "Jue 14", "Vie 15", "Sáb 16", "Dom 17", "Lun 18", "Mar 19", "Mié 20", "Jue 21", "Vie 22", "Sáb 23", "Dom 24", "Lun 25", "Mar 26"];
+
+let FLOTA_ACTUAL=[],FH_DATA=[],FLE_DATA=[],RS_DATA=[],RAW_FH=[],RAW_MM=[];
+let chartLocal=null,chartTipo=null,chartFHItems=null,chartRS=null;
+
+Chart.defaults.color='#5a6a7e';
+Chart.defaults.borderColor='rgba(0,0,0,0.06)';
+
+// ── FETCH ──
+function sheetUrl(name){
+  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(name)}`;
+}
+async function fetchSheet(name){
+  const res=await fetch(sheetUrl(name));
+  if(!res.ok)throw new Error('HTTP '+res.status);
+  const txt=await res.text();
+  const m=txt.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/);
+  if(!m)throw new Error('GViz parse error');
+  const j=JSON.parse(m[1]);
+  const cols=(j.table.cols||[]).map(c=>c.label||c.id||'');
+  const rows=(j.table.rows||[]).map(row=>{
+    const obj={};
+    (row.c||[]).forEach((cell,i)=>{obj[cols[i]]=cell&&cell.v!=null?String(cell.v):'';});
+    return obj;
+  });
+  return {cols,rows};
+}
+
+// ── LOADING ──
+function setLoad(m){document.getElementById('loading-text').textContent=m}
+function hideLoad(){document.getElementById('loading-overlay').classList.add('hidden')}
+
+// ── extractDays: usa la lista de headers exactos del Excel ──
+function extractDays(row, cols, dayHeaders){
+  // dayHeaders: array con los nombres exactos de las columnas de días
+  return dayHeaders.map(h=>{
+    const v=String(row[h]||'').trim();
+    return (v.toUpperCase()==='X'||v==='1'||v==='✓'||v.toLowerCase()==='true'||v.toLowerCase()==='si')?1:0;
+  });
+}
+
+// ── MAIN LOADER ──
+async function loadAllData(){
+  const btn=document.getElementById('btn-refresh');
+  btn.disabled=true;btn.textContent='Cargando…';
+  document.getElementById('loading-overlay').classList.remove('hidden');
+  let fromSheet=false;
+
+  try{
+    setLoad('Cargando Mapeo de Flota…');
+    const {rows}=await fetchSheet(TABS.mapeo);
+    const r2=rows.filter(r=>r['Patente']||r['patente']);
+    if(r2.length){
+      FLOTA_ACTUAL=r2.map(r=>({
+        tipo:r['Tipo']||r['tipo']||'',local:r['Local']||r['local']||'',
+        patente:r['Patente']||r['patente']||'',
+        status:r['Estatus']||r['Status']||r['status']||r['estatus']||'',
+        obs:r['Observación']||r['Obs']||r['obs']||''
+      }));
+      fromSheet=true;
+    }
+  }catch(e){console.warn('Mapeo fallback',e)}
+
+  try{
+    setLoad('Cargando Check FLE…');
+    const {rows}=await fetchSheet(TABS.fle);
+    const map={};
+    rows.forEach(r=>{
+      const ppu=r['PPU']||r['Patente']||r['patente']||'';
+      if(!ppu)return;
+      if(!map[ppu])map[ppu]={ppu,estado:'PENDIENTE',items:[]};
+      const item=r['Item']||r['item']||r['Ítem']||'';
+      const ok=r['OK']||r['ok']||r['Listo']||r['listo']||'';
+      if(item)map[ppu].items.push({texto:item,listo:ok==='✅'||ok.toLowerCase()==='si'||ok==='1'});
+      if((r['Estado']||r['estado']||'').toUpperCase()==='LISTO')map[ppu].estado='LISTO';
+    });
+    if(Object.keys(map).length){FLE_DATA=Object.values(map);fromSheet=true;}
+  }catch(e){console.warn('FLE fallback',e)}
+
+  try{
+    setLoad('Cargando Flota Actual VS…');
+    const {rows}=await fetchSheet(TABS.fh);
+    const r2=rows.filter(r=>r['Patente']||r['patente']);
+    if(r2.length){
+      FH_DATA=r2.map(r=>({
+        local:r['Local']||r['local']||'',
+        patente:r['Patente']||r['patente']||'',
+        status:r['Status']||r['status']||'',
+        rs:r['Resolucion Sanitaria']||r['RS']||'',
+        telemetria:r['Telemetria']||r['telemetria']||'',
+        branding:r['branding Si/No']||r['Branding']||'',
+        branding_estado:r['Branding (Estado)']||r['branding_estado']||'',
+        lamas:r['Lamas']||r['lamas']||'',
+        sep:r['Separador']||r['sep']||'',
+        sac:r['Permiso SAC']||r['SAC']||''
+      }));
+      fromSheet=true;
+    }
+  }catch(e){console.warn('FH fallback',e)}
+
+  try{
+    setLoad('Cargando Revisión RS…');
+    const {rows}=await fetchSheet(TABS.rs);
+    const r2=rows.filter(r=>r['Patente']||r['patente']);
+    if(r2.length){
+      RS_DATA=r2.map(r=>({
+        local:r['Local']||r['local']||'',patente:r['Patente']||r['patente']||'',
+        estatus:r['Estatus']||r['Estado']||r['estatus']||'',
+        obs:r['Observación']||r['Obs']||r['obs']||''
+      }));
+      fromSheet=true;
+    }
+  }catch(e){console.warn('RS fallback',e)}
+
+  try{
+    setLoad('Cargando Citaciones FH (73 vehículos)…');
+    const {rows,cols}=await fetchSheet(TABS.cit_fh);
+    const r2=rows.filter(r=>r['Patente']||r['patente']);
+    if(r2.length){
+      RAW_FH=r2.map(r=>({
+        local:r['Local']||r['local']||'',
+        patente:r['Patente']||r['patente']||'',
+        days:extractDays(r,cols,FH_DAY_HEADERS)
+      }));
+      fromSheet=true;
+    }
+  }catch(e){console.warn('CitFH fallback',e)}
+
+  try{
+    setLoad('Cargando Citaciones FLD (47 vehículos)…');
+    const {rows,cols}=await fetchSheet(TABS.cit_fld);
+    const r2=rows.filter(r=>r['Patente']||r['patente']);
+    if(r2.length){
+      RAW_MM=r2.map(r=>({
+        local:r['Local']||r['local']||'',
+        patente:r['Patente']||r['patente']||'',
+        days:extractDays(r,cols,FLD_DAY_HEADERS)
+      }));
+      fromSheet=true;
+    }
+  }catch(e){console.warn('CitFLD fallback',e)}
+
+  // Fallback
+  if(!FLOTA_ACTUAL.length)FLOTA_ACTUAL=_FB.FLOTA_ACTUAL;
+  if(!FH_DATA.length)FH_DATA=_FB.FH_DATA;
+  if(!FLE_DATA.length)FLE_DATA=_FB.FLE_DATA;
+  if(!RS_DATA.length)RS_DATA=_FB.RS_DATA;
+  if(!RAW_FH.length)RAW_FH=_FB.RAW_FH;
+  if(!RAW_MM.length)RAW_MM=_FB.RAW_MM;
+
+  const ts=new Date().toLocaleString('es-CL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('last-update').textContent=ts+(fromSheet?' · Google Sheets':' · datos locales');
+  hideLoad();
+  renderAll();
+  btn.disabled=false;btn.textContent='⟳ Actualizar';
+}
+
+function renderAll(){
+  initMF();renderMapeoFlota();
+  renderFLE();
+  initFH();renderFH();
+  initRS();renderRS();
+  renderCit('fh');
+  renderCit('fld');
+}
+
+function switchTab(id,btn){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pane-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── CHART DEFAULTS: números siempre visibles ──
+const DATALABELS_PLUGIN={
+  id:'datalabels',
+  afterDatasetsDraw(chart){
+    const ctx=chart.ctx;
+    chart.data.datasets.forEach((dataset,di)=>{
+      const meta=chart.getDatasetMeta(di);
+      if(meta.hidden)return;
+      meta.data.forEach((el,i)=>{
+        const val=dataset.data[i];
+        if(val===undefined||val===null||val===0)return;
+        ctx.save();
+        ctx.font='bold 11px Plus Jakarta Sans';
+        ctx.fillStyle='#ffffff';
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        const {x,y}=el.tooltipPosition();
+        ctx.fillText(val,x,y);
+        ctx.restore();
+      });
+    });
+  }
+};
+Chart.register(DATALABELS_PLUGIN);
+
+// ── MAPEO DE FLOTA ──
+function initMF(){
+  fillSel('mf-local',[...new Set(FLOTA_ACTUAL.map(r=>r.local).filter(Boolean))].sort());
+  fillSel('mf-tipo',[...new Set(FLOTA_ACTUAL.map(r=>r.tipo).filter(Boolean))].sort());
+  fillSel('mf-status',[...new Set(FLOTA_ACTUAL.map(r=>r.status).filter(Boolean))].sort());
+}
+function renderMapeoFlota(){
+  const l=document.getElementById('mf-local').value;
+  const t=document.getElementById('mf-tipo').value;
+  const s=document.getElementById('mf-status').value;
+  const q=(document.getElementById('mf-search').value||'').toLowerCase();
+  const data=FLOTA_ACTUAL.filter(r=>(l==='ALL'||r.local===l)&&(t==='ALL'||r.tipo===t)&&(s==='ALL'||r.status===s)&&(!q||(r.patente||'').toLowerCase().includes(q)||(r.local||'').toLowerCase().includes(q)));
+  const activos=data.filter(r=>(r.status||'').toLowerCase().includes('activ')).length;
+  document.getElementById('mf-count-label').textContent=`(${data.length} vehículos)`;
+  kpiStrip('mf-kpis',[
+    {label:'Total',val:data.length,sub:'Vehículos',cls:'k1',icon:'🚛'},
+    {label:'Activos',val:activos,sub:'Operativos',cls:'k2',icon:'✅'},
+    {label:'No Operativos',val:data.length-activos,sub:'Fuera de línea',cls:'k3',icon:'⚠️'},
+    {label:'Locales',val:[...new Set(data.map(r=>r.local).filter(Boolean))].length,sub:'Distintos',cls:'k4',icon:'🏪'},
+    {label:'Tipos',val:[...new Set(data.map(r=>r.tipo).filter(Boolean))].length,sub:'FH · FLD · FLE',cls:'k6',icon:'📦'}
+  ]);
+  document.getElementById('mf-tbody').innerHTML=data.length?data.map(r=>`<tr><td><span class="badge b-blue">${r.tipo||'—'}</span></td><td>${r.local||'—'}</td><td class="mono">${r.patente||'—'}</td><td>${sBadge(r.status)}</td><td style="color:var(--text-dim)">${r.obs||'—'}</td></tr>`).join(''):`<tr><td colspan="5"><p class="empty-msg">Sin resultados</p></td></tr>`;
+
+  const byL={};
+  data.forEach(r=>{if(!r.local)return;if(!byL[r.local])byL[r.local]={a:0,n:0};if((r.status||'').toLowerCase().includes('activ'))byL[r.local].a++;else byL[r.local].n++;});
+  const lbs=Object.keys(byL).sort();
+  if(chartLocal)chartLocal.destroy();
+  chartLocal=new Chart(document.getElementById('mf-chart-local'),{type:'bar',data:{labels:lbs,datasets:[
+    {label:'Activos',data:lbs.map(l=>byL[l].a),backgroundColor:'rgba(34,211,163,0.75)',borderRadius:5,borderSkipped:false},
+    {label:'No Op.',data:lbs.map(l=>byL[l].n),backgroundColor:'rgba(244,63,94,0.75)',borderRadius:5,borderSkipped:false}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#5a6a7e',font:{size:11}}},datalabels:{display:false}},scales:{x:{ticks:{color:'#5a6a7e',font:{size:9}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#5a6a7e',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'},beginAtZero:true}}}});
+
+  const byT={};data.forEach(r=>{if(r.tipo)byT[r.tipo]=(byT[r.tipo]||0)+1;});
+  if(chartTipo)chartTipo.destroy();
+  chartTipo=new Chart(document.getElementById('mf-chart-tipo'),{type:'doughnut',data:{labels:Object.keys(byT),datasets:[{data:Object.values(byT),backgroundColor:['rgba(59,130,246,0.85)','rgba(34,211,163,0.85)','rgba(245,158,11,0.85)'],borderWidth:0,hoverOffset:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#5a6a7e',font:{size:11},padding:14,boxWidth:12}},datalabels:{display:false}}}});
+}
+
+// ── CHECK FLE ──
+function renderFLE(){
+  const f=document.getElementById('fle-filter').value;
+  const data=FLE_DATA.filter(v=>f==='ALL'||v.estado===f);
+  const listo=FLE_DATA.filter(v=>v.estado==='LISTO').length;
+  const totalItems=FLE_DATA.reduce((s,v)=>s+(v.items||[]).length,0);
+  const okItems=FLE_DATA.reduce((s,v)=>s+(v.items||[]).filter(i=>i.listo).length,0);
+  kpiStrip('fle-kpis',[
+    {label:'Total FLE',val:FLE_DATA.length,sub:'Registradas',cls:'k1',icon:'⚡'},
+    {label:'Listas',val:listo,sub:'Sin observaciones',cls:'k2',icon:'✅'},
+    {label:'Pendientes',val:FLE_DATA.length-listo,sub:'Con problemas',cls:'k3',icon:'⚠️'},
+    {label:'Cumplimiento',val:FLE_DATA.length?Math.round(listo/FLE_DATA.length*100)+'%':'0%',sub:'FLE listas',cls:'k5',icon:'📊'},
+    {label:'Ítems OK',val:okItems+'/'+totalItems,sub:'Completados',cls:'k4',icon:'📋'}
+  ]);
+  document.getElementById('fle-cards').innerHTML=data.length?data.map(v=>`
+    <div class="fle-card">
+      <div class="fle-head">
+        <span class="fle-ppu">${v.ppu}</span>
+        <span class="badge ${v.estado==='LISTO'?'b-green':'b-red'}">${v.estado==='LISTO'?'✅ Listo':'⚠️ Pendiente'}</span>
+      </div>
+      <div class="fle-items">${(v.items||[]).map(i=>`
+        <div class="fle-item">
+          <span class="fle-item-text">${i.texto}</span>
+          <span>${i.listo?'<span style="color:var(--green)">✅</span>':'<span style="color:var(--red)">❌</span>'}</span>
+        </div>`).join('')||'<span class="empty-msg">Sin ítems</span>'}
+      </div>
+    </div>`).join(''):`<p class="empty-msg" style="padding:20px">Sin resultados</p>`;
+}
+
+// ── FLOTA FH ──
+function initFH(){fillSel('fh-local',[...new Set(FH_DATA.map(r=>r.local).filter(Boolean))].sort())}
+function renderFH(){
+  const l=document.getElementById('fh-local').value;
+  const s=document.getElementById('fh-status').value;
+  const q=(document.getElementById('fh-search').value||'').toLowerCase();
+  const data=FH_DATA.filter(r=>(l==='ALL'||r.local===l)&&(s==='ALL'||(r.status||'').toLowerCase()===s.toLowerCase())&&(!q||(r.patente||'').toLowerCase().includes(q)));
+  const act=data.filter(r=>(r.status||'').toLowerCase()==='activa').length;
+  const panne=data.filter(r=>(r.status||'').toLowerCase()==='panne').length;
+  const tel=data.filter(r=>(r.telemetria||'').toLowerCase().includes('lista')).length;
+  const br=data.filter(r=>r.branding_estado==='✅').length;
+  kpiStrip('fh-kpis',[
+    {label:'Total FH',val:data.length,sub:'Registradas',cls:'k1',icon:'🚐'},
+    {label:'Activas',val:act,sub:'Operando',cls:'k2',icon:'✅'},
+    {label:'Panne',val:panne,sub:'No operativas',cls:'k3',icon:'🔴'},
+    {label:'Telemetría OK',val:tel,sub:'Lista',cls:'k4',icon:'📡'},
+    {label:'Branding OK',val:br,sub:'Conformes',cls:'k5',icon:'🎨'}
+  ]);
+  document.getElementById('fh-tbody').innerHTML=data.length?data.map(r=>`<tr><td>${r.local||'—'}</td><td class="mono">${r.patente||'—'}</td><td>${fhSB(r.status)}</td><td>${telB(r.telemetria)}</td><td>${okB(r.branding_estado)}</td><td>${rsB(r.rs)}</td><td>${okB(r.lamas)}</td><td>${okB(r.sep)}</td><td>${okB(r.sac)}</td></tr>`).join(''):`<tr><td colspan="9"><p class="empty-msg">Sin resultados</p></td></tr>`;
+  const byL={};data.forEach(r=>{const k=r.local||'?';if(!byL[k])byL[k]={t:0,a:0,p:0,tl:0,br:0};byL[k].t++;if((r.status||'').toLowerCase()==='activa')byL[k].a++;if((r.status||'').toLowerCase()==='panne')byL[k].p++;if((r.telemetria||'').toLowerCase().includes('lista'))byL[k].tl++;if(r.branding_estado==='✅')byL[k].br++;});
+  document.getElementById('fh-by-local').innerHTML=`<table><thead><tr><th>Local</th><th>Total</th><th>Activas</th><th>Panne</th><th>Telem.</th><th>Branding</th></tr></thead><tbody>${Object.entries(byL).map(([l,v])=>`<tr><td>${l}</td><td>${v.t}</td><td><span class="badge b-green">${v.a}</span></td><td><span class="badge b-red">${v.p}</span></td><td>${v.tl}/${v.t}</td><td>${v.br}/${v.t}</td></tr>`).join('')}</tbody></table>`;
+  const items=['Branding','Telemetría','Lamas','Separador','RS OK'];
+  const cnts=[
+    data.filter(r=>r.branding_estado==='✅').length,
+    data.filter(r=>(r.telemetria||'').toLowerCase().includes('lista')).length,
+    data.filter(r=>r.lamas==='✅').length,
+    data.filter(r=>r.sep==='✅').length,
+    data.filter(r=>(r.rs||'').toLowerCase().includes('si cuenta')).length
+  ];
+  if(chartFHItems)chartFHItems.destroy();
+  chartFHItems=new Chart(document.getElementById('fh-items-chart'),{type:'bar',data:{labels:items,datasets:[{data:cnts,backgroundColor:['rgba(59,130,246,0.8)','rgba(34,211,163,0.8)','rgba(245,158,11,0.8)','rgba(139,92,246,0.8)','rgba(244,63,94,0.8)'],borderRadius:6,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false}},scales:{x:{max:Math.max(data.length,1),ticks:{color:'#5a6a7e',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#5a6a7e',font:{size:11}},grid:{color:'rgba(255,255,255,0.03)'}}}}});
+}
+
+// ── REVISION RS ──
+function initRS(){fillSel('rs-local',[...new Set(RS_DATA.map(r=>r.local).filter(Boolean))].sort())}
+function renderRS(){
+  const l=document.getElementById('rs-local').value;
+  const e=document.getElementById('rs-estatus').value;
+  const q=(document.getElementById('rs-search').value||'').toLowerCase();
+  const data=RS_DATA.filter(r=>(l==='ALL'||r.local===l)&&(e==='ALL'||r.estatus===e)&&(!q||(r.patente||'').toLowerCase().includes(q)));
+  kpiStrip('rs-kpis',[
+    {label:'Total RS',val:RS_DATA.length,sub:'Registradas',cls:'k1',icon:'📋'},
+    {label:'Pendientes',val:RS_DATA.filter(r=>r.estatus==='Pendiente').length,sub:'Sin completar',cls:'k3',icon:'⏳'},
+    {label:'Listas',val:RS_DATA.filter(r=>r.estatus==='Listo').length,sub:'Completadas',cls:'k2',icon:'✅'},
+    {label:'Completado',val:RS_DATA.length?Math.round(RS_DATA.filter(r=>r.estatus==='Listo').length/RS_DATA.length*100)+'%':'0%',sub:'del total',cls:'k5',icon:'📊'}
+  ]);
+  document.getElementById('rs-tbody').innerHTML=data.length?data.map(r=>`<tr><td>${r.local||'—'}</td><td class="mono">${r.patente||'—'}</td><td>${r.estatus==='Listo'?'<span class="badge b-green">✅ Listo</span>':'<span class="badge b-amber">⏳ Pendiente</span>'}</td><td style="color:var(--text-dim)">${r.obs||'—'}</td></tr>`).join(''):`<tr><td colspan="4"><p class="empty-msg">Sin resultados</p></td></tr>`;
+  const byL={};data.forEach(r=>{const k=r.local||'?';if(!byL[k])byL[k]={t:0,ok:0};byL[k].t++;if(r.estatus==='Listo')byL[k].ok++;});
+  const labs=Object.keys(byL);const pends=labs.map(k=>byL[k].t-byL[k].ok);const oks=labs.map(k=>byL[k].ok);
+  if(chartRS)chartRS.destroy();
+  chartRS=new Chart(document.getElementById('rs-chart'),{type:'bar',data:{labels:labs,datasets:[
+    {label:'Listas',data:oks,backgroundColor:'rgba(34,211,163,0.8)',borderRadius:5},
+    {label:'Pendientes',data:pends,backgroundColor:'rgba(245,158,11,0.8)',borderRadius:5}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#5a6a7e',font:{size:11}}},datalabels:{display:false}},scales:{x:{ticks:{color:'#5a6a7e',font:{size:9}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#5a6a7e',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+}
+
+// ── CITACIONES ──
+function renderCit(type){
+  const raw=type==='fh'?RAW_FH:RAW_MM;
+  const lSel=document.getElementById('cit'+type+'-local').value;
+  const qEl=document.getElementById('cit'+type+'-search');
+  const q=qEl?(qEl.value||'').toLowerCase():'';
+  const locals=[...new Set(raw.map(r=>r.local).filter(Boolean))].sort();
+  fillSel('cit'+type+'-local',locals,lSel);
+
+  let data=raw.filter(r=>(lSel==='ALL'||r.local===lSel)&&(!q||(r.patente||'').toLowerCase().includes(q)));
+
+  const days=26; // 26 columnas de días (Vie01…Mar26)
+  const enriched=data.map(r=>({...r,act:(r.days||[]).filter(v=>v===1).length,total:days}));
+  const totalAct=enriched.reduce((s,r)=>s+r.act,0);
+  const avg=enriched.length?Math.round(totalAct/enriched.length):0;
+  const maxAct=enriched.length?Math.max(...enriched.map(r=>r.act)):0;
+
+  kpiStrip('cit'+type+'-kpis',[
+    {label:'Vehículos',val:enriched.length,sub:'Registrados en período',cls:'k1',icon:'🚛'},
+    {label:'Total Salidas',val:totalAct,sub:'Días activos acumulado',cls:'k2',icon:'📅'},
+    {label:'Prom. Días/Veh',val:avg,sub:'Promedio',cls:'k4',icon:'📊'},
+    {label:'Período',val:days+' días',sub:'Mayo 2026',cls:'k5',icon:'🗓️'},
+    {label:'Máx. Salidas',val:maxAct,sub:'Un vehículo',cls:'k6',icon:'🏆'}
+  ]);
+
+  // Rankings
+  const sorted=[...enriched].sort((a,b)=>b.act-a.act);
+  const top5=sorted.slice(0,5);
+  const bot5=[...enriched].sort((a,b)=>a.act-b.act).slice(0,5);
+  const medals=['gold','silver','bronze','',''];
+  const medalEmoji=['🥇','🥈','🥉'];
+
+  const rankEl=(items,color)=>items.map((r,i)=>`
+    <div class="rank-item">
+      <div class="rank-num ${medals[i]||''}">${i<3?medalEmoji[i]:(i+1)}</div>
+      <div class="rank-info">
+        <div class="rank-name">${r.patente||'?'}</div>
+        <div class="rank-sub">${r.local||'—'}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="rank-bar-wrap"><div class="rank-bar" style="width:${maxAct?Math.round(r.act/maxAct*100):0}%;background:${color}"></div></div>
+        <div style="text-align:right"><div style="font-size:20px;font-weight:900;color:${color}">${r.act}</div><div style="font-size:10px;color:var(--text-muted)">días</div></div>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('cit'+type+'-rank-top').innerHTML=rankEl(top5,'var(--green)');
+  document.getElementById('cit'+type+'-rank-bot').innerHTML=rankEl(bot5,'var(--red)');
+
+  // ── Datos base por sala ──
+  const bySalaVeh={};
+  enriched.forEach(r=>{const k=r.local||'?';bySalaVeh[k]=(bySalaVeh[k]||0)+1;});
+  const salaKeys=Object.keys(bySalaVeh).sort((a,b)=>bySalaVeh[b]-bySalaVeh[a]);
+  const totalVeh=salaKeys.reduce((s,k)=>s+bySalaVeh[k],0);
+  const pieColors=['#2563eb','#3b82f6','#60a5fa','#93c5fd','#1d4ed8'];
+
+  // ── GRÁFICO 1: Móviles por Sala ──
+  const sKey='_chart_cit'+type+'_sala';
+  if(window[sKey])window[sKey].destroy();
+  window[sKey]=new Chart(document.getElementById('cit'+type+'-sala-chart'),{
+    type:'bar',
+    data:{labels:salaKeys,datasets:[{data:salaKeys.map(k=>bySalaVeh[k]),backgroundColor:salaKeys.map((_,i)=>pieColors[i%pieColors.length]),borderRadius:8,borderSkipped:false}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,layout:{padding:{right:40}},
+      plugins:{legend:{display:false},datalabels:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw} móviles`}}},
+      scales:{x:{display:false,beginAtZero:true},y:{ticks:{color:'#1a2332',font:{size:12,weight:'700'}},grid:{display:false},border:{display:false}}}
+    },
+    plugins:[{id:'mobileLabels',afterDatasetsDraw(chart){
+      const ctx=chart.ctx;
+      chart.getDatasetMeta(0).data.forEach((bar,i)=>{
+        const v=bySalaVeh[salaKeys[i]];
+        const pct=totalVeh?Math.round(v/totalVeh*100):0;
+        ctx.save();
+        if(bar.width>36){ctx.font='bold 13px Plus Jakarta Sans';ctx.fillStyle='#fff';ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(v,bar.x-8,bar.y);}
+        ctx.font='600 11px Plus Jakarta Sans';ctx.fillStyle='#5a6a7e';ctx.textAlign='left';ctx.textBaseline='middle';
+        ctx.fillText(pct+'%',bar.x+6,bar.y);
+        ctx.restore();
+      });
+    }}]
+  });
+
+  // ── GRÁFICO 2: Actividad por Día de la Semana ──
+  const dowNames=['Vie','Sáb','Dom','Lun','Mar','Mié','Jue'];
+  const dowCount={};dowNames.forEach(d=>dowCount[d]=0);
+  enriched.forEach(r=>{(r.days||[]).forEach((v,i)=>{if(v===1){const d=dowNames[i%7];dowCount[d]=(dowCount[d]||0)+1;}});});
+  const maxDow=Math.max(...Object.values(dowCount),1);
+  const dowBg=dowNames.map(d=>{const r=dowCount[d]/maxDow;return r>0.8?'#2563eb':r>0.55?'#3b82f6':r>0.3?'#60a5fa':'#bfdbfe';});
+  const dKey='_chart_cit'+type+'_dist';
+  if(window[dKey])window[dKey].destroy();
+  window[dKey]=new Chart(document.getElementById('cit'+type+'-dist-chart'),{
+    type:'bar',
+    data:{labels:dowNames,datasets:[{data:dowNames.map(d=>dowCount[d]||0),backgroundColor:dowBg,borderRadius:8,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},datalabels:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw} salidas`}}},
+      scales:{x:{ticks:{color:'#1a2332',font:{size:13,weight:'700'}},grid:{display:false},border:{display:false}},y:{display:false,beginAtZero:true}}
+    },
+    plugins:[{id:'dowLabels',afterDatasetsDraw(chart){
+      const ctx=chart.ctx;
+      chart.getDatasetMeta(0).data.forEach((bar,i)=>{
+        const val=chart.data.datasets[0].data[i];
+        if(!val)return;
+        ctx.save();
+        ctx.font='bold 12px Plus Jakarta Sans';
+        if(bar.height>26){ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(val,bar.x,bar.y+14);}
+        else{ctx.fillStyle='#1a2332';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(val,bar.x,bar.y-4);}
+        ctx.restore();
+      });
+    }}]
+  });
+
+  // ── GRÁFICO 3: Donut – móviles por sala ──
+  const pKey='_chart_cit'+type+'_pie';
+  if(window[pKey])window[pKey].destroy();
+  window[pKey]=new Chart(document.getElementById('cit'+type+'-pie-chart'),{
+    type:'doughnut',
+    data:{labels:salaKeys,datasets:[{data:salaKeys.map(k=>bySalaVeh[k]),backgroundColor:salaKeys.map((_,i)=>pieColors[i%pieColors.length]),borderWidth:3,borderColor:'#fff',hoverOffset:6}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+      plugins:{
+        legend:{position:'right',labels:{color:'#1a2332',font:{size:11,weight:'600'},padding:14,boxWidth:10,
+          generateLabels(chart){return chart.data.labels.map((lbl,i)=>{const v=chart.data.datasets[0].data[i];const pct=totalVeh?Math.round(v/totalVeh*100):0;return{text:`${lbl}  ${v}v · ${pct}%`,fillStyle:pieColors[i%pieColors.length],strokeStyle:'transparent',index:i};});}
+        }},
+        datalabels:{display:false},
+        tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw} móviles (${totalVeh?Math.round(ctx.raw/totalVeh*100):0}%)`}}
+      }
+    },
+    plugins:[{id:'centerLabel',afterDatasetsDraw(chart){
+      const ctx=chart.ctx;const{chartArea}=chart;if(!chartArea)return;
+      const cx=(chartArea.left+chartArea.right)/2,cy=(chartArea.top+chartArea.bottom)/2;
+      ctx.save();ctx.font='800 22px Plus Jakarta Sans';ctx.fillStyle='#1a2332';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(totalVeh,cx,cy-8);
+      ctx.font='500 10px Plus Jakarta Sans';ctx.fillStyle='#9baabb';ctx.fillText('móviles',cx,cy+10);ctx.restore();
+    }}]
+  });
+
+  // Heatmap
+  const hmEl=document.getElementById('cit'+type+'-heatmap');
+  hmEl.style.display='grid';
+  hmEl.style.gridTemplateColumns=`130px repeat(${days},24px)`;
+  hmEl.style.gap='2px';
+  const dayLabels=type==='fh'?FH_DAY_HEADERS:FLD_DAY_HEADERS;
+  let html='<div class="hm-name" style="font-weight:800;color:var(--accent);font-size:10px;min-width:130px">Patente</div>';
+  for(let d=0;d<days;d++){
+    const lbl=dayLabels[d]?dayLabels[d].replace(/[A-Za-záéíóúÁÉÍÓÚüÜñÑ]+ /,'').trim():String(d+1);
+    html+=`<div class="hm-header">${lbl}</div>`;
+  }
+  enriched.forEach(r=>{
+    const intensity=Math.min(1,r.act/Math.max(maxAct,1));
+    html+=`<div class="hm-name" title="${r.local}">${r.patente||'?'} <span style="font-size:9px;color:var(--text-muted);margin-left:4px">${r.act}d</span></div>`;
+    for(let d=0;d<days;d++){
+      const v=(r.days||[])[d];
+      if(v===1){
+        const alpha=(0.5+intensity*0.45).toFixed(2);
+        html+=`<div class="hm-cell" style="background:rgba(233,30,140,${alpha})" title="${r.patente} día ${d+1}: activo">■</div>`;
+      } else {
+        html+=`<div class="hm-cell hm-zero" title="${r.patente} día ${d+1}: sin actividad">·</div>`;
+      }
+    }
+  });
+  hmEl.innerHTML=html;
+
+  // Tabla detalle con números visibles
+  const sorted2=[...enriched].sort((a,b)=>b.act-a.act);
+  document.getElementById('cit'+type+'-tbody').innerHTML=sorted2.map((r,i)=>{
+    const pct=days?Math.round(r.act/days*100):0;
+    const clr=pct>60?'var(--green)':pct>30?'var(--amber)':'var(--red)';
+    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`;
+    return `<tr>
+      <td style="font-weight:700;color:var(--text-dim)">${medal}</td>
+      <td>${r.local||'—'}</td>
+      <td class="mono">${r.patente||'—'}</td>
+      <td><strong style="color:var(--text);font-size:16px;font-weight:900">${r.act}</strong></td>
+      <td style="color:var(--text-dim)">${days}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:70px;background:#e8eaed;border-radius:3px;height:7px">
+            <div style="height:6px;border-radius:3px;width:${pct}%;background:${clr}"></div>
+          </div>
+          <span style="font-size:11px;color:${clr};font-weight:700">${pct}%</span>
+        </div>
+      </td>
+      <td>
+        <div style="display:flex;gap:2px;flex-wrap:wrap;max-width:320px">
+          ${(r.days||[]).map((v,dd)=>`<div style="width:10px;height:10px;border-radius:2px;background:${v?'#6eaaff':'#e8eaed'}" title="Día ${dd+1}"></div>`).join('')}
+        </div>
+      </td>
+    </tr>`;
+  }).join()||`<tr><td colspan="7"><p class="empty-msg">Sin datos</p></td></tr>`;
+}
+
+// ── HELPERS ──
+function kpiStrip(id,items){
+  document.getElementById(id).innerHTML=items.map(k=>`
+    <div class="kpi ${k.cls}">
+      <div class="kpi-icon">${k.icon||''}</div>
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-val">${k.val}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`).join('');
+}
+function fillSel(id,opts,keep){
+  const el=document.getElementById(id);if(!el)return;
+  const cur=keep||el.value;
+  el.innerHTML='<option value="ALL">Todos</option>'+opts.map(o=>`<option value="${o}">${o}</option>`).join('');
+  if(opts.includes(cur))el.value=cur;
+}
+function sBadge(s){s=s||'';if(s.toLowerCase().includes('activ'))return`<span class="badge b-green">✅ ${s}</span>`;if(s.toLowerCase().includes('no op'))return`<span class="badge b-red">❌ ${s}</span>`;return`<span class="badge b-gray">${s||'—'}</span>`}
+function fhSB(s){s=s||'';if(s.toLowerCase()==='activa')return`<span class="badge b-green">● Activa</span>`;if(s.toLowerCase()==='panne')return`<span class="badge b-red">● Panne</span>`;if(!s)return`<span class="badge b-gray">—</span>`;return`<span class="badge b-blue">● ${s}</span>`}
+function okB(v){v=v||'';if(v==='✅')return'<span style="color:var(--green);font-size:14px">✅</span>';if(v==='❌')return'<span style="color:var(--red);font-size:14px">❌</span>';if(v.toLowerCase().includes('pend'))return'<span class="badge b-amber">Pend.</span>';if(!v)return'<span style="color:var(--text-muted)">—</span>';return`<span class="badge b-gray">${v}</span>`}
+function telB(v){v=v||'';if(v.toLowerCase().includes('lista'))return'<span class="badge b-green">✅ Lista</span>';if(v.toLowerCase().includes('pend'))return'<span class="badge b-amber">⏳ Pend.</span>';return`<span class="badge b-gray">${v||'—'}</span>`}
+function rsB(v){v=v||'';if(v.toLowerCase().includes('si cuenta'))return'<span class="badge b-green">✅ Con RS</span>';if(v.toLowerCase().includes('pend'))return'<span class="badge b-amber">⏳ Pend.</span>';return`<span class="badge b-gray">${v||'—'}</span>`}
+
+// ── FALLBACK DATA ──
+const _FB={"FLOTA_ACTUAL":[{"tipo":"FH","local":"L58","patente":"SYSS70","status":"Activo","obs":""},{"tipo":"FH","local":"L58","patente":"PPWY63","status":"Activo","obs":""},{"tipo":"FH","local":"L58","patente":"SRYH57","status":"Activo","obs":""},{"tipo":"FH","local":"L58","patente":"STWR86","status":"Activo","obs":""},{"tipo":"FH","local":"L58","patente":"TPXY11","status":"Activo","obs":""},{"tipo":"FH","local":"L58","patente":"VHSW61","status":"Activo","obs":""},{"tipo":"FH","local":"L58","patente":"TVZC13","status":"Activo","obs":""},{"tipo":"FH","local":"L58","patente":"DLCB16","status":"Activo","obs":"Prueba"},{"tipo":"FH","local":"L58","patente":"SVLY73","status":"Activo","obs":""},{"tipo":"FH","local":"L58","patente":"TSTP28","status":"Activo","obs":""},{"tipo":"FH","local":"L94","patente":"TRYL78","status":"Activo","obs":""},{"tipo":"FH","local":"L94","patente":"VJPH80","status":"Activo","obs":""},{"tipo":"FH","local":"L94","patente":"VJWK44","status":"Activo","obs":""},{"tipo":"FH","local":"L94","patente":"VGWW22","status":"Activo","obs":""},{"tipo":"FH","local":"L94","patente":"LRXY26","status":"Activo","obs":""},{"tipo":"FH","local":"L94","patente":"PGHD38","status":"No operativo","obs":"Sin fecha de reingreso"},{"tipo":"FH","local":"L94","patente":"VJRT63","status":"Activo","obs":""},{"tipo":"FH","local":"L98","patente":"KSXP45","status":"Activo","obs":""},{"tipo":"FH","local":"L98","patente":"RTTR83","status":"Activo","obs":""},{"tipo":"FH","local":"L98","patente":"SDYY74","status":"Activo","obs":""},{"tipo":"FH","local":"L98","patente":"TRPP43","status":"Activo","obs":""},{"tipo":"FH","local":"L98","patente":"VKJF15","status":"Activo","obs":""},{"tipo":"FH","local":"L98","patente":"RDLW17","status":"Activo","obs":""},{"tipo":"FH","local":"L98","patente":"PCFZ21","status":"Activo","obs":""},{"tipo":"FH","local":"L98","patente":"VDSH17","status":"Activo","obs":""},{"tipo":"FH","local":"L98","patente":"PRFC70","status":"Activo","obs":""},{"tipo":"FH","local":"L98","patente":"RBYF40","status":"Activo","obs":""},{"tipo":"FH","local":"L98","patente":"RPWK21","status":"Activo","obs":""},{"tipo":"FH","local":"L98","patente":"SKXW43","status":"Activo","obs":""},{"tipo":"FH","local":"L98","patente":"TJDR58","status":"Activo","obs":""},{"tipo":"FH","local":"L98","patente":"LSVH23","status":"Activo","obs":""},{"tipo":"FH","local":"L98","patente":"PCJZ43","status":"Activo","obs":""},{"tipo":"FH","local":"L99","patente":"LHZW29","status":"Activo","obs":""},{"tipo":"FH","local":"L99","patente":"VJWK40","status":"Activo","obs":""},{"tipo":"FH","local":"L99","patente":"VJWK39","status":"Activo","obs":""},{"tipo":"FH","local":"L99","patente":"JTYF43","status":"Activo","obs":""},{"tipo":"FH","local":"L99","patente":"LLXD43","status":"Activo","obs":""},{"tipo":"FH","local":"L99","patente":"VJPH72","status":"Activo","obs":""},{"tipo":"FH","local":"L99","patente":"VJPH79","status":"No operativo","obs":"Falta tripulacion"},{"tipo":"FH","local":"L99","patente":"LCWT89","status":"Activo","obs":""},{"tipo":"FH","local":"L120","patente":"KKJZ64","status":"Activo","obs":""},{"tipo":"FH","local":"L120","patente":"HZRX80","status":"Activo","obs":""},{"tipo":"FH","local":"L120","patente":"KCHJ51","status":"Activo","obs":""},{"tipo":"FH","local":"L120","patente":"KYSJ80","status":"Activo","obs":""},{"tipo":"FH","local":"L120","patente":"TSCT51","status":"Activo","obs":""},{"tipo":"FH","local":"L120","patente":"LHVR22","status":"Activo","obs":""},{"tipo":"FH","local":"L120","patente":"RYJR47","status":"Activo","obs":""},{"tipo":"FH","local":"L120","patente":"TZCH26","status":"Activo","obs":""},{"tipo":"FH","local":"L120","patente":"KZZY17","status":"Activo","obs":""},{"tipo":"FH","local":"L120","patente":"PGJL89","status":"Activo","obs":""},{"tipo":"FH","local":"L120","patente":"RXTL44","status":"Activo","obs":""},{"tipo":"FH","local":"L120","patente":"TRYL82","status":"Activo","obs":""},{"tipo":"FH","local":"L121","patente":"VLHB59","status":"Activo","obs":""},{"tipo":"FH","local":"L121","patente":"VDZC94","status":"Activo","obs":""},{"tipo":"FH","local":"L121","patente":"PTGD93","status":"Activo","obs":""},{"tipo":"FH","local":"L121","patente":"CJJY36","status":"Activo","obs":""},{"tipo":"FH","local":"L121","patente":"TYWH80","status":"Activo","obs":""},{"tipo":"FH","local":"L121","patente":"RCVG47","status":"Activo","obs":""},{"tipo":"FH","local":"L121","patente":"VGTD93","status":"Activo","obs":""},{"tipo":"FH","local":"L121","patente":"SBTV68","status":"Activo","obs":""},{"tipo":"FH","local":"L121","patente":"VSGW69","status":"No operativo","obs":"Sin fecha de reingreso"},{"tipo":"FH","local":"L121","patente":"PSLP82","status":"Activo","obs":""},{"tipo":"FH","local":"L608","patente":"TWRJ22","status":"Activo","obs":""},{"tipo":"FH","local":"L608","patente":"HZPB58","status":"Activo","obs":""},{"tipo":"FH","local":"L608","patente":"VKDZ87","status":"Activo","obs":""},{"tipo":"FH","local":"L618","patente":"JSTD66","status":"Activo","obs":""},{"tipo":"FH","local":"L618","patente":"KXDX77","status":"Activo","obs":""},{"tipo":"FH","local":"L618","patente":"FZKB60","status":"Activo","obs":""},{"tipo":"FH","local":"L618","patente":"VJWK43","status":"Activo","obs":""},{"tipo":"FH","local":"L618","patente":"KZZY13","status":"Activo","obs":""},{"tipo":"FH","local":"L618","patente":"VJPH71","status":"Activo","obs":""},{"tipo":"FH","local":"L618","patente":"VJPJ18","status":"Activo","obs":""},{"tipo":"FH","local":"L618","patente":"VKFD45","status":"Activo","obs":""},{"tipo":"FH","local":"L657","patente":"JSSK36","status":"Activo","obs":""},{"tipo":"FH","local":"L657","patente":"KGVB33","status":"Activo","obs":""},{"tipo":"FLD","local":"L45","patente":"JCRZ41","status":"Activo","obs":"17"},{"tipo":"FLD","local":"L45","patente":"PPXL56","status":"Activo","obs":"17"},{"tipo":"FLD","local":"L45","patente":"PZLX49","status":"Activo","obs":"17"},{"tipo":"FLD","local":"L45","patente":"HDJW94","status":"Activo","obs":"16"},{"tipo":"FLD","local":"L45","patente":"RRSX45","status":"Activo","obs":"15"},{"tipo":"FLD","local":"L45","patente":"HVDK36","status":"Activo","obs":"13"},{"tipo":"FH","local":"L45","patente":"PSCW71","status":"Activo","obs":"13"},{"tipo":"FH","local":"L45","patente":"GXDS74","status":"Activo","obs":"Ya salio/Validar"},{"tipo":"FLD","local":"L45","patente":"KBGZ36","status":"Activo","obs":"12"},{"tipo":"FLD","local":"L45","patente":"RRLF86","status":"Activo","obs":"12"},{"tipo":"FLD","local":"L45","patente":"LJTV50","status":"Activo","obs":"10"},{"tipo":"FLD","local":"L45","patente":"JRLS46","status":"Activo","obs":""},{"tipo":"FLD","local":"L45","patente":"RLDP39","status":"Activo","obs":""},{"tipo":"FLD","local":"L45","patente":"JXCV71","status":"Activo","obs":""},{"tipo":"FLD","local":"L45","patente":"SSRF40","status":"Activo","obs":"Sale 30/05"},{"tipo":"FLD","local":"L45","patente":"KCWL95","status":"Activo","obs":"9"},{"tipo":"FLD","local":"L58","patente":"SCWZ56","status":"Activo","obs":"16"},{"tipo":"FLD","local":"L58","patente":"JLPZ25","status":"Activo","obs":"15"},{"tipo":"FLD","local":"L58","patente":"LZGV53","status":"Activo","obs":"15"},{"tipo":"FLD","local":"L58","patente":"RDKS16","status":"Activo","obs":"14"},{"tipo":"FLD","local":"L58","patente":"GLBZ25","status":"Activo","obs":"12"},{"tipo":"FLD","local":"L58","patente":"JKDP45","status":"Activo","obs":"11"},{"tipo":"FLD","local":"L58","patente":"JVHZ54","status":"Activo","obs":"11"},{"tipo":"FLD","local":"L58","patente":"KBGZ82","status":"Activo","obs":"9"},{"tipo":"FLD","local":"L58","patente":"JTRH38","status":"Activo","obs":"6"},{"tipo":"FLD","local":"L58","patente":"LYVP54","status":"Activo","obs":"2"},{"tipo":"FLD","local":"L58","patente":"KTGT79","status":"Activo","obs":"0"},{"tipo":"FLD","local":"L58","patente":"GFYS25","status":"No operativo","obs":"Sale Mañana"},{"tipo":"FLD","local":"L95","patente":"FJTT27","status":"Activo","obs":"13"},{"tipo":"FLD","local":"L95","patente":"KZPY29","status":"Activo","obs":"13"},{"tipo":"FLD","local":"L95","patente":"RTXS54","status":"Activo","obs":"13"},{"tipo":"FLD","local":"L95","patente":"SJCY30","status":"Activo","obs":"12"},{"tipo":"FLD","local":"L95","patente":"VDVB53","status":"Activo","obs":"12"},{"tipo":"FLD","local":"L95","patente":"GYKP40","status":"Activo","obs":"11"},{"tipo":"FLD","local":"L95","patente":"PDZS86","status":"Activo","obs":"11"},{"tipo":"FLD","local":"L95","patente":"JWDH77","status":"Activo","obs":"10"},{"tipo":"FLD","local":"L95","patente":"TPVK74","status":"Activo","obs":"10"},{"tipo":"FLD","local":"L95","patente":"RYTC41","status":"Activo","obs":"9"},{"tipo":"FLD","local":"L98","patente":"PRLG54","status":"Activo","obs":"15"},{"tipo":"FLD","local":"L98","patente":"KXKJ82","status":"Activo","obs":"14"},{"tipo":"FLD","local":"L98","patente":"RCLZ94","status":"Activo","obs":"13"},{"tipo":"FLD","local":"L98","patente":"JWXL72","status":"Activo","obs":"12"},{"tipo":"FLD","local":"L98","patente":"LTXC53","status":"Activo","obs":"8"},{"tipo":"FLD","local":"L98","patente":"KTXZ53","status":"Activo","obs":"3"},{"tipo":"FLD","local":"L98","patente":"RGWL75","status":"Activo","obs":"2"},{"tipo":"FLD","local":"L98","patente":"LZJF49","status":"Activo","obs":"1"},{"tipo":"FLE","local":"L45","patente":"TTHR19","status":"Activo","obs":"23"},{"tipo":"FLE","local":"L45","patente":"TTHR12","status":"Activo","obs":"20"},{"tipo":"FLE","local":"L45","patente":"TTHP95","status":"Activo","obs":"15"},{"tipo":"FLE","local":"L45","patente":"TTHP92","status":"Activo","obs":"13"},{"tipo":"FLE","local":"L45","patente":"TTHP82","status":"Activo","obs":"10"},{"tipo":"FLE","local":"L45","patente":"TTHP93","status":"Activo","obs":"10"}],"FH_DATA":[{"local":"L120 (Temuco)","patente":"HZRX80","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"L120 (Temuco)","patente":"KCHJ51","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"L120 (Temuco)","patente":"KKJZ64","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"L120 (Temuco)","patente":"KYSJ80","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"L120 (Temuco)","patente":"KZZY17","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"L120 (Temuco)","patente":"LHVR22","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"Pendiente","lamas":"Pendiente","sep":"Pendiente","sac":"❌"},{"local":"L120 (Temuco)","patente":"PGJL89","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"L120 (Temuco)","patente":"RXTL44","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"L120 (Temuco)","patente":"RYJR47","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"L120 (Temuco)","patente":"TRYL82","status":"Activa","rs":"Pendiente RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"L120 (Temuco)","patente":"TSCT51","status":"Activa","rs":"Pendiente RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"L120 (Temuco)","patente":"TZCH26","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"121 (Punta Arenas)","patente":"CJJY36","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"Pendiente","lamas":"Pendiente","sep":"Pendiente","sac":"❌"},{"local":"121 (Punta Arenas)","patente":"PSLP82","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"❌","sac":"❌"},{"local":"121 (Punta Arenas)","patente":"PTGD93","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"121 (Punta Arenas)","patente":"SBTV68","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"121 (Punta Arenas)","patente":"TYWH80","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"121 (Punta Arenas)","patente":"RCVG47","status":"Activa","rs":"Pendiente RS","telemetria":"Pendiente Instalacion","branding":"","branding_estado":"","lamas":"","sep":"","sac":"❌"},{"local":"121 (Punta Arenas)","patente":"VGTD93","status":"Activa","rs":"Pendiente RS","telemetria":"Pendiente Instalacion","branding":"","branding_estado":"","lamas":"","sep":"","sac":"❌"},{"local":"121 (Punta Arenas)","patente":"VDZC94","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"121 (Punta Arenas)","patente":"VLHB59","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"❌","sac":"❌"},{"local":"121 (Punta Arenas)","patente":"VSGW69","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"No","branding_estado":"❌","lamas":"✅","sep":"✅","sac":"❌"},{"local":"58 (Viña del mar)","patente":"DLCB16","status":"Panne","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"58 (Viña del mar)","patente":"PPWY63","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"58 (Viña del mar)","patente":"SRYH57","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"58 (Viña del mar)","patente":"STWR86","status":"Activa","rs":"Si cuenta con RS","telemetria":"Pendiente Instalacion","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"58 (Viña del mar)","patente":"SVLY73","status":"Activa","rs":"Pendiente RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"❌","lamas":"✅","sep":"✅","sac":"❌"},{"local":"58 (Viña del mar)","patente":"SYSS70","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"58 (Viña del mar)","patente":"TPXY11","status":"Activa","rs":"Si cuenta con RS","telemetria":"Pendiente Instalacion","branding":"Si","branding_estado":"❌","lamas":"✅","sep":"✅","sac":"❌"},{"local":"58 (Viña del mar)","patente":"TVZC13","status":"Panne","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"58 (Viña del mar)","patente":"VHSW61","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"58 (Viña del mar)","patente":"TSTP28","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"No","branding_estado":"❌","lamas":"❌","sep":"✅","sac":"❌"},{"local":"608 (Chillan)","patente":"HZPB58","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"❌","lamas":"❌","sep":"❌","sac":"❌"},{"local":"608 (Chillan)","patente":"VKDZ87","status":"Activa","rs":"Pendiente RS","telemetria":"Instalacion Lista","branding":"","branding_estado":"Pendiente","lamas":"Pendiente","sep":"Pendiente","sac":"❌"},{"local":"608 (Chillan)","patente":"TWRJ22","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"","branding_estado":"Pendiente","lamas":"Pendiente","sep":"Pendiente","sac":"❌"},{"local":"618 (Osorno)","patente":"FZKB60","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Pendiente","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"618 (Osorno)","patente":"JSTD66","status":"Activa","rs":"Si cuenta con RS","telemetria":"Pendiente Instalacion","branding":"Pendiente","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"618 (Osorno)","patente":"VJWK43","status":"Activa","rs":"Pendiente RS","telemetria":"Pendiente Instalacion","branding":"","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"618 (Osorno)","patente":"VJPH71","status":"Activa","rs":"Pendiente RS","telemetria":"Pendiente Instalacion","branding":"","branding_estado":"❌","lamas":"✅","sep":"✅","sac":"❌"},{"local":"618 (Osorno)","patente":"KXDX77","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Pendiente","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"618 (Osorno)","patente":"KZZY13","status":"Activa","rs":"Si cuenta con RS","telemetria":"Pendiente Instalacion","branding":"Pendiente","branding_estado":"✅","lamas":"✅","sep":"❌","sac":"❌"},{"local":"618 (Osorno)","patente":"VJPJ18","status":"nan","rs":"Pendiente RS","telemetria":"Pendiente Instalacion","branding":"","branding_estado":"","lamas":"","sep":"","sac":"❌"},{"local":"618 (Osorno)","patente":"VKFD45","status":"Activa","rs":"Si cuenta con RS","telemetria":"Pendiente Instalacion","branding":"Pendiente","branding_estado":"Pendiente","lamas":"Pendiente","sep":"Pendiente","sac":"❌"},{"local":"657 (Castro)","patente":"JSSK36","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"❌","sac":"❌"},{"local":"657 (Castro)","patente":"KGVB33","status":"Activa","rs":"Si cuenta con RS","telemetria":"Pendiente Instalacion","branding":"Si","branding_estado":"❌","lamas":"❌","sep":"❌","sac":"❌"},{"local":"94 (Valdivia)","patente":"LRXY26","status":"Activa","rs":"Si cuenta con RS","telemetria":"Pendiente Instalacion","branding":"No","branding_estado":"Pendiente","lamas":"Pendiente","sep":"Pendiente","sac":"❌"},{"local":"94 (Valdivia)","patente":"PGHD38","status":"Panne","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"No","branding_estado":"Pendiente","lamas":"Pendiente","sep":"Pendiente","sac":"❌"},{"local":"94 (Valdivia)","patente":"VJPH80","status":"Activa","rs":"Pendiente RS","telemetria":"Pendiente Instalacion","branding":"","branding_estado":"Pendiente","lamas":"Pendiente","sep":"Pendiente","sac":"❌"},{"local":"94 (Valdivia)","patente":"VJWK44","status":"Activa","rs":"Pendiente RS","telemetria":"Pendiente Instalacion","branding":"","branding_estado":"❌","lamas":"✅","sep":"✅","sac":"❌"},{"local":"94 (Valdivia)","patente":"TRYL78","status":"Activa","rs":"Pendiente RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"❌","sac":"❌"},{"local":"94 (Valdivia)","patente":"VGWW22","status":"Activa","rs":"Pendiente RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"94 (Valdivia)","patente":"VJRT63","status":"Activa","rs":"Pendiente RS","telemetria":"Pendiente Instalacion","branding":"Pendiente","branding_estado":"Pendiente","lamas":"Pendiente","sep":"Pendiente","sac":"❌"},{"local":"98 (Concepcion)","patente":"KSXP45","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"98 (Concepcion)","patente":"LSVH23","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"98 (Concepcion)","patente":"PCJZ43","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"98 (Concepcion)","patente":"RBYF40","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"98 (Concepcion)","patente":"RTTR83","status":"Activa","rs":"Si cuenta con RS","telemetria":"Pendiente Instalacion","branding":"No","branding_estado":"❌","lamas":"✅","sep":"✅","sac":"❌"},{"local":"98 (Concepcion)","patente":"SDYY74","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"98 (Concepcion)","patente":"SKXW43","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"98 (Concepcion)","patente":"TJDR58","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"98 (Concepcion)","patente":"TRPP43","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"No","branding_estado":"pendiente","lamas":"pendiente","sep":"pendiente","sac":"❌"},{"local":"98 (Concepcion)","patente":"VKJF15","status":"Activa","rs":"Si cuenta con RS","telemetria":"Pendiente Instalacion","branding":"No","branding_estado":"❌","lamas":"✅","sep":"✅","sac":"❌"},{"local":"98 (Concepcion)","patente":"RPWK21","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"No","branding_estado":"No cumple","lamas":"✅","sep":"✅","sac":"❌"},{"local":"98 (Concepcion)","patente":"VDSH17","status":"Activa","rs":"Pendiente RS","telemetria":"Pendiente Instalacion","branding":"","branding_estado":"","lamas":"","sep":"","sac":"❌"},{"local":"98 (Concepcion)","patente":"PCFZ21","status":"Activa","rs":"Pendiente RS","telemetria":"Pendiente Instalacion","branding":"","branding_estado":"","lamas":"","sep":"","sac":"❌"},{"local":"98 (Concepcion)","patente":"RDLW17","status":"Activa","rs":"Pendiente RS","telemetria":"Pendiente Instalacion","branding":"","branding_estado":"","lamas":"","sep":"","sac":"❌"},{"local":"98 (Concepcion)","patente":"PRFC70","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"No","branding_estado":"No cumple","lamas":"✅","sep":"✅","sac":"❌"},{"local":"99 (Puerto Montt)","patente":"JTYF43","status":"Activa","rs":"Pendiente RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"Pendiente","lamas":"Pendiente","sep":"Pendiente","sac":"❌"},{"local":"99 (Puerto Montt)","patente":"LHZW29","status":"Activa","rs":"Si cuenta con RS","telemetria":"Instalacion Lista","branding":"Si","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"99 (Puerto Montt)","patente":"VJWK40","status":"Activa","rs":"Pendiente RS","telemetria":"Pendiente Instalacion","branding":"Revisar","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"99 (Puerto Montt)","patente":"VJWK39","status":"Activa","rs":"Pendiente RS","telemetria":"Pendiente Instalacion","branding":"Revisar","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"99 (Puerto Montt)","patente":"VJPH72","status":"Activa","rs":"Pendiente RS","telemetria":"Pendiente Instalacion","branding":"","branding_estado":"","lamas":"","sep":"","sac":"❌"},{"local":"99 (Puerto Montt)","patente":"VJPH79","status":"Activa","rs":"Pendiente RS","telemetria":"Pendiente Instalacion","branding":"Pendiente","branding_estado":"Pendiente","lamas":"Pendiente","sep":"Pendiente","sac":"❌"},{"local":"99 (Puerto Montt)","patente":"LLXD43","status":"Activa","rs":"Pendiente RS","telemetria":"Instalacion Lista","branding":"Revisar","branding_estado":"✅","lamas":"✅","sep":"✅","sac":"❌"},{"local":"99 (Puerto Montt)","patente":"LCWT89","status":"nan","rs":"Pendiente RS","telemetria":"Pendiente Instalacion","branding":"","branding_estado":"","lamas":"","sep":"","sac":"❌"}],"FLE_DATA":[{"ppu":"TTHR12","estado":"PENDIENTE","items":[{"texto":"TMK no funciona","listo":false},{"texto":"Parabrisa quebrado / cambio urgente","listo":true}]},{"ppu":"TTHR19","estado":"LISTO","items":[{"texto":"Buen estado general","listo":true}]},{"ppu":"TTHP82","estado":"PENDIENTE","items":[{"texto":"TMK no funciona","listo":false},{"texto":"Focos delanteros malos","listo":false},{"texto":"Sin grabado de patente","listo":false},{"texto":"Sin branding","listo":false}]},{"ppu":"TTHP92","estado":"PENDIENTE","items":[{"texto":"TMK no funciona","listo":false},{"texto":"Focos delanteros malos","listo":false}]},{"ppu":"TTHP93","estado":"PENDIENTE","items":[{"texto":"TMK no funciona","listo":false},{"texto":"Focos delanteros malos","listo":true},{"texto":"Cámara mala","listo":false}]},{"ppu":"TTHP95","estado":"PENDIENTE","items":[{"texto":"Cámara mala","listo":false}]}],"RS_DATA":[{"local":"L120 (Temuco)","patente":"TKWX57","estatus":"Pendiente","obs":"No responde"},{"local":"L120 (Temuco)","patente":"TRYL82","estatus":"Pendiente","obs":"VS"},{"local":"L120 (Temuco)","patente":"TSCT51","estatus":"Pendiente","obs":"VS"},{"local":"121 (Punta Arenas)","patente":"PSLP82","estatus":"Pendiente","obs":"Proceso"},{"local":"58 (Viña del Mar)","patente":"SVLY73","estatus":"Pendiente","obs":"Proceso"},{"local":"618 (Osorno)","patente":"VKFD45","estatus":"Listo","obs":"listo"},{"local":"94 (Valdivia)","patente":"TRYL78","estatus":"Pendiente","obs":"VS"},{"local":"94 (Valdivia)","patente":"VGWW22","estatus":"Pendiente","obs":"Proceso"},{"local":"99 (Puerto Montt)","patente":"JTYF43","estatus":"Pendiente","obs":"Proceso"},{"local":"99 (Puerto Montt)","patente":"LLXD43","estatus":"Pendiente","obs":"Proceso"}],"RAW_FH":[{"local":"L58","patente":"SYSS70","days":[0,1,0,0,1,0,1,1,0,0,1,0,1,1,0,1,1,1,0,1,1,0,0,0,1,1]},{"local":"L58","patente":"PPWY63","days":[0,1,0,0,0,1,1,0,1,0,0,1,1,0,0,0,1,0,0,1,1,1,0,1,0,0]},{"local":"L58","patente":"SRYH57","days":[0,0,0,1,1,0,0,1,0,0,0,0,0,1,1,0,0,0,1,0,1,1,0,1,0,1]},{"local":"L58","patente":"STWR86","days":[0,1,1,1,0,1,0,0,1,0,0,0,0,1,1,0,0,0,1,1,0,1,0,0,0,0]},{"local":"L58","patente":"TPXY11","days":[0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,1,0,1,0,1,0]},{"local":"L58","patente":"VHSW61","days":[0,0,0,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,1,1,1,0,0,0]},{"local":"L58","patente":"TVZC13","days":[0,0,1,0,1,1,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L58","patente":"DLCB16","days":[0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0]},{"local":"L58","patente":"SVLY73","days":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L58","patente":"TSTP28","days":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L94","patente":"TRYL78","days":[0,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,1,0,1,0,1,0,1,0,1,0]},{"local":"L94","patente":"VJPH80","days":[0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,0,1,0,1]},{"local":"L94","patente":"VJWK44","days":[0,1,1,1,1,1,1,1,0,1,1,0,1,0,0,1,1,0,1,0,0,1,0,0,0,1]},{"local":"L94","patente":"VGWW22","days":[0,1,1,1,1,1,0,1,0,0,1,1,0,0,0,0,0,0,0,1,1,0,1,1,1,0]},{"local":"L94","patente":"LRXY26","days":[0,0,0,0,0,1,1,0,1,0,0,0,0,0,1,0,0,0,1,1,1,1,0,0,0,0]},{"local":"L94","patente":"PGHD38","days":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L94","patente":"VJRT63","days":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L98","patente":"KSXP45","days":[0,1,1,0,1,1,1,0,1,0,0,1,0,1,1,1,0,1,0,0,0,1,0,0,0,1]},{"local":"L98","patente":"RTTR83","days":[0,1,1,0,1,1,1,1,0,0,0,1,0,1,0,1,0,0,1,0,1,0,1,0,0,1]},{"local":"L98","patente":"SDYY74","days":[0,1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,1,0,1,0,1,0,0,0,1,0]},{"local":"L98","patente":"TRPP43","days":[0,1,1,1,1,1,0,0,0,1,1,0,0,0,1,1,0,1,0,1,0,0,0,0,1,0]},{"local":"L98","patente":"VKJF15","days":[0,1,1,1,1,0,1,0,1,1,0,0,0,1,0,1,1,0,1,0,0,0,0,1,0,0]},{"local":"L98","patente":"RDLW17","days":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L98","patente":"PCFZ21","days":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L98","patente":"VDSH17","days":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L98","patente":"PRFC70","days":[0,0,1,1,1,0,0,1,1,0,0,0,1,1,0,0,1,0,0,1,0,0,1,0,0,0]},{"local":"L98","patente":"RBYF40","days":[0,1,1,1,1,0,0,1,0,0,1,0,1,0,0,1,0,0,1,0,0,1,0,0,0,0]},{"local":"L98","patente":"RPWK21","days":[0,1,0,1,1,1,0,1,1,0,0,0,0,0,1,0,0,0,0,1,0,0,1,1,0,0]},{"local":"L98","patente":"SKXW43","days":[0,1,0,0,0,1,1,0,1,1,0,0,0,1,1,1,0,0,1,0,1,0,0,0,0,0]},{"local":"L98","patente":"TJDR58","days":[0,0,0,0,1,0,1,0,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0]},{"local":"L98","patente":"LSVH23","days":[0,1,0,1,0,0,0,1,0,0,0,1,1,0,0,0,0,1,0,0,0,0,1,1,0,0]},{"local":"L98","patente":"PCJZ43","days":[0,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L99","patente":"LHZW29","days":[0,1,1,1,1,1,1,1,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L99","patente":"VJWK40","days":[0,1,1,1,1,1,1,1,1,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L99","patente":"VJWK39","days":[0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L99","patente":"JTYF43","days":[0,0,0,0,0,1,1,1,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L99","patente":"LLXD43","days":[0,1,1,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L99","patente":"VJPH72","days":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L99","patente":"VJPH79","days":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L99","patente":"LCWT89","days":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L120","patente":"KKJZ64","days":[0,1,1,1,1,1,1,0,0,1,0,0,1,1,0,0,1,0,0,1,0,1,0,0,1,0]},{"local":"L120","patente":"HZRX80","days":[0,0,1,1,1,1,0,1,0,1,0,1,0,1,0,0,1,0,0,1,0,1,0,0,1,0]},{"local":"L120","patente":"KCHJ51","days":[0,1,0,0,1,1,1,0,0,1,0,1,0,1,0,1,0,1,0,0,1,0,0,1,0,1]},{"local":"L120","patente":"KYSJ80","days":[0,0,1,1,1,0,0,1,0,1,0,1,1,0,1,0,0,1,0,1,1,0,1,0,0,0]},{"local":"L120","patente":"TSCT51","days":[0,1,0,1,1,1,1,0,1,0,1,0,0,0,1,0,0,1,0,0,1,0,1,0,0,1]},{"local":"L120","patente":"LHVR22","days":[0,1,1,0,0,1,1,0,1,0,0,1,0,0,1,0,0,0,1,0,1,0,1,0,0,1]},{"local":"L120","patente":"RYJR47","days":[0,0,1,1,1,0,1,0,0,0,1,0,0,1,0,0,1,0,1,0,1,0,0,1,0,1]},{"local":"L120","patente":"TZCH26","days":[0,0,1,1,1,1,0,1,0,0,1,0,1,0,0,0,1,0,1,0,1,0,0,0,1,0]},{"local":"L120","patente":"KZZY17","days":[0,0,1,0,0,1,1,0,1,0,1,0,1,0,1,0,0,1,0,1,0,1,0,0,0,0]},{"local":"L120","patente":"PGJL89","days":[0,0,1,1,0,1,1,0,0,0,1,0,0,1,0,0,1,0,1,0,0,1,0,0,1,0]},{"local":"L120","patente":"RXTL44","days":[0,1,1,0,0,0,1,1,0,1,0,0,1,0,0,1,0,1,0,0,1,0,0,1,0,0]},{"local":"L120","patente":"TRYL82","days":[0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0]},{"local":"L121","patente":"VLHB59","days":[0,0,1,1,1,1,1,1,1,0,1,0,0,0,1,1,1,1,0,1,0,1,1,0,1,1]},{"local":"L121","patente":"VDZC94","days":[0,1,0,0,0,1,1,0,1,0,1,1,1,1,1,1,0,1,0,1,0,1,1,1,1,0]},{"local":"L121","patente":"PTGD93","days":[0,1,1,0,1,1,1,0,1,1,0,1,1,0,1,0,0,0,1,1,1,0,1,0,0,0]},{"local":"L121","patente":"CJJY36","days":[0,0,1,0,1,1,1,1,0,1,0,1,0,1,0,0,1,0,0,0,1,1,0,1,0,0]},{"local":"L121","patente":"TYWH80","days":[0,0,1,0,1,1,0,0,0,1,0,0,0,1,0,1,0,0,1,1,0,1,0,0,1,1]},{"local":"L121","patente":"SBTV68","days":[0,1,0,0,0,0,0,0,1,1,0,1,0,1,0,0,1,0,0,0,0,0,1,1,0,1]},{"local":"L121","patente":"VSGW69","days":[0,0,0,1,1,1,1,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L121","patente":"PSLP82","days":[0,0,1,1,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L608","patente":"TWRJ22","days":[0,1,0,0,1,0,1,1,1,0,0,1,0,0,0,1,0,0,0,1,0,1,1,0,1,1]},{"local":"L608","patente":"TFBY52","days":[0,1,0,1,1,0,1,0,0,0,1,0,0,0,0,0,0,0,1,0,0,1,1,0,0,1]},{"local":"L608","patente":"VKDZ87","days":[0,0,0,0,0,0,0,1,1,0,0,0,0,1,0,1,0,0,0,0,1,0,0,0,0,0]},{"local":"L618","patente":"JSTD66","days":[0,1,1,1,1,1,1,0,1,1,1,1,0,1,1,1,0,0,1,0,0,1,1,1,1,0]},{"local":"L618","patente":"KXDX77","days":[0,1,1,1,1,1,1,0,1,1,1,0,0,1,0,0,1,1,0,1,1,0,1,0,1,0]},{"local":"L618","patente":"FZKB60","days":[0,1,1,1,1,1,1,0,0,0,1,1,0,0,0,1,1,1,0,1,0,1,0,0,1,0]},{"local":"L618","patente":"VJWK43","days":[0,1,1,0,1,0,1,1,0,0,0,1,0,1,0,1,0,1,0,0,0,0,0,1,0,1]},{"local":"L618","patente":"KZZY13","days":[0,1,0,1,0,0,1,1,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L618","patente":"VJPH71","days":[0,0,0,0,1,1,0,1,1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L618","patente":"VJPJ18","days":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L618","patente":"VKFD45","days":[0,0,0,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0]},{"local":"L657","patente":"JSSK36","days":[0,1,1,0,1,1,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L657","patente":"KGVB33","days":[0,0,0,0,1,0,1,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0]}],"RAW_MM":[{"local":"L45","patente":"JCRZ41","days":[0,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,0,1,0,0,0,1]},{"local":"L45","patente":"PPXL56","days":[0,1,1,1,1,1,1,1,1,0,1,0,1,1,0,0,0,1,0,1,0,1,1,0,1,1]},{"local":"L45","patente":"PZLX49","days":[0,0,1,1,1,1,1,1,1,0,0,1,0,1,1,1,1,0,1,0,1,0,1,1,1,0]},{"local":"L45","patente":"HDJW94","days":[0,1,1,1,0,1,1,1,1,0,0,0,1,1,0,1,1,0,1,0,1,0,1,1,1,0]},{"local":"L45","patente":"RRSX45","days":[0,1,1,1,0,1,1,1,1,1,0,0,0,0,0,1,1,1,0,1,1,0,1,1,0,0]},{"local":"L45","patente":"HVDK36","days":[0,0,1,1,1,1,1,0,0,0,0,0,1,0,1,0,0,1,0,1,1,0,1,0,1,1]},{"local":"L45","patente":"PSCW71","days":[0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,1,1,1,0,1,0,1,1,0,1,0]},{"local":"L45","patente":"KBGZ36","days":[0,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,0,1,0,0,0,1,0,1,0]},{"local":"L45","patente":"RRLF86","days":[0,0,0,0,1,1,1,1,1,0,0,0,1,1,1,0,0,1,0,1,0,1,0,0,0,1]},{"local":"L45","patente":"LJTV50","days":[0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,1,0,1,1,1,0,0,1]},{"local":"L45","patente":"RBSD26","days":[0,1,0,1,1,1,1,0,0,0,1,1,1,0,1,0,0,1,0,0,0,0,0,0,0,0]},{"local":"L45","patente":"KCWL95","days":[0,1,0,0,1,0,1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,0,0]},{"local":"L58","patente":"SCWZ56","days":[0,0,1,1,1,0,1,0,1,1,1,0,0,1,1,1,1,0,1,1,1,0,1,0,1,0]},{"local":"L58","patente":"JLPZ25","days":[0,0,0,1,1,0,1,1,1,0,1,1,1,1,0,0,0,1,1,1,1,0,1,0,1,0]},{"local":"L58","patente":"LZGV53","days":[0,1,1,1,0,0,0,1,1,1,1,1,0,1,0,0,1,1,0,0,0,1,0,1,1,1]},{"local":"L58","patente":"RDKS16","days":[0,0,0,1,1,1,1,1,0,0,0,0,1,1,1,0,1,1,0,0,1,1,0,1,0,1]},{"local":"L58","patente":"GLBZ25","days":[0,1,0,0,0,0,1,1,1,0,0,1,1,1,0,1,0,0,1,1,0,1,0,0,0,1]},{"local":"L58","patente":"JKDP45","days":[0,0,1,0,1,1,0,0,1,0,1,0,0,0,1,1,0,1,0,1,0,0,1,0,1,0]},{"local":"L58","patente":"JVHZ54","days":[0,1,0,1,0,1,0,0,0,1,0,0,1,0,1,1,0,0,0,1,0,1,0,1,0,1]},{"local":"L58","patente":"KBGZ82","days":[0,1,1,0,1,0,0,1,0,1,1,1,0,0,0,0,0,0,0,0,1,0,0,1,0,0]},{"local":"L58","patente":"JTRH38","days":[0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,1,0,1,0,0,1,0,0,0,1]},{"local":"L58","patente":"LYVP54","days":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0]},{"local":"L58","patente":"KTGT79","days":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},{"local":"L95","patente":"FJTT27","days":[0,1,1,0,1,1,1,1,0,0,0,1,0,1,1,0,0,0,1,0,1,0,1,0,0,1]},{"local":"L95","patente":"KZPY29","days":[0,1,1,0,0,0,1,1,1,1,0,1,1,1,0,0,0,1,1,0,1,0,0,0,1,0]},{"local":"L95","patente":"RTXS54","days":[0,1,1,1,0,1,1,1,0,0,1,0,0,1,1,1,0,1,0,0,0,0,0,1,0,1]},{"local":"L95","patente":"SJCY30","days":[0,0,1,1,1,1,0,0,0,0,1,1,0,1,0,0,1,0,1,1,0,0,1,0,0,1]},{"local":"L95","patente":"VDVB53","days":[0,0,1,0,0,1,1,0,1,0,1,0,1,1,0,1,0,0,0,1,1,0,0,0,1,1]},{"local":"L95","patente":"GYKP40","days":[0,1,0,1,0,0,0,1,1,0,0,0,0,1,1,1,0,0,0,1,0,1,1,0,1,0]},{"local":"L95","patente":"PDZS86","days":[0,0,0,0,0,1,1,1,0,0,1,0,1,1,0,0,0,1,1,0,1,1,0,0,1,0]},{"local":"L95","patente":"JWDH77","days":[0,0,0,1,0,1,1,0,1,0,0,0,1,1,1,0,0,0,1,0,0,1,0,0,1,0]},{"local":"L95","patente":"TPVK74","days":[0,0,0,0,1,0,1,1,0,0,0,1,0,1,1,0,0,0,1,0,0,1,1,0,1,0]},{"local":"L95","patente":"RYTC41","days":[0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,1,1,0,0,0,1,0,0,0,0,1]},{"local":"L98","patente":"PRLG54","days":[0,1,1,1,1,1,1,0,1,1,0,1,1,1,0,0,1,0,1,0,0,1,0,0,1,0]},{"local":"L98","patente":"KXKJ82","days":[0,1,0,1,1,0,1,1,0,1,1,0,1,0,1,1,0,0,0,1,0,1,0,0,1,1]},{"local":"L98","patente":"RCLZ94","days":[0,1,1,0,1,1,0,0,1,0,1,0,0,1,0,1,0,1,0,0,1,0,1,1,0,1]},{"local":"L98","patente":"JWXL72","days":[0,0,0,1,1,1,1,1,0,0,1,1,0,0,1,0,0,1,1,0,0,0,0,1,1,0]},{"local":"L98","patente":"LTXC53","days":[0,0,0,0,0,1,1,0,1,0,1,1,0,0,0,0,1,0,1,1,0,0,0,0,0,0]},{"local":"L98","patente":"KTXZ53","days":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,0,0,0]},{"local":"L98","patente":"RGWL75","days":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1]},{"local":"L98","patente":"LZJF49","days":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0]},{"local":"L45 ELÉCTRICAS","patente":"TTHR19","days":[0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1]},{"local":"L45 ELÉCTRICAS","patente":"TTHR12","days":[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,0,0,0,1,1,1,1]},{"local":"L45 ELÉCTRICAS","patente":"TTHP95","days":[0,0,1,0,1,1,1,1,0,1,1,0,0,1,0,1,1,0,1,1,1,1,0,0,1,0]},{"local":"L45 ELÉCTRICAS","patente":"TTHP92","days":[0,1,1,0,1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,1,1,1]},{"local":"L45 ELÉCTRICAS","patente":"TTHP82","days":[0,0,1,1,0,0,0,0,0,0,1,0,0,0,1,0,0,1,0,0,1,1,1,1,0,1]},{"local":"L45 ELÉCTRICAS","patente":"TTHP93","days":[0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,1,1]}],"day_headers_fh":["Vie 01","Sáb 02","Dom 03","Lun 04","Mar 05","Mié 06","Jue 07","Vie 08","Sáb 09","Dom 10","Lun 11","Mar 12","Mié 13","Jue 14","Vie 15","Sáb 16","Dom 17","Lun 18","Mar 19","Mié 20","Jue 21","Vie 22","Sáb 23","Dom 24","Lun 25","Mar 26"],"day_headers_fld":["Vie 01","Sáb 02","Dom 03","Lun 04","Mar 05","Mié 06","Jue 07","Vie 08","Sáb 09","Dom 10","Lun 11","Mar 12","Mié 13","Jue 14","Vie 15","Sáb 16","Dom 17","Lun 18","Mar 19","Mié 20","Jue 21","Vie 22","Sáb 23","Dom 24","Lun 25","Mar 26"]};
+
+loadAllData();
+</script>
+</body>
+</html>
