@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Planificación HD – Valdishopper</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+:root{
+  --bg:#f0f2f5;--bg2:#e8eaed;
+  --card:#ffffff;--border:#e2e5ea;
+  --accent:#e91e8c;--accent2:#f06292;--accent-glow:rgba(233,30,140,0.15);
+  --topbar:#0f1e36;
+  --text:#1a2332;--text-dim:#5a6a7e;--text-muted:#9baabb;
+  --green:#00c07f;--amber:#f59e0b;--red:#f43f5e;--blue:#2563eb;--purple:#8b5cf6;
+  --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;min-height:100vh;}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px}
+
+/* TOPBAR */
+.topbar{background:var(--topbar);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(255,255,255,0.08)}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-logo{font-size:18px;font-weight:900;letter-spacing:-.02em;color:#fff}
+.brand-logo span{color:var(--accent)}
+.brand-sep{width:1px;height:24px;background:rgba(255,255,255,0.15)}
+.brand-title{font-size:13px;font-weight:700;color:rgba(255,255,255,0.5);letter-spacing:.02em}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(34,211,163,0.2);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(34,211,163,0.2)}50%{box-shadow:0 0 0 6px rgba(34,211,163,0.06)}}
+.last-upd{font-size:11px;color:rgba(255,255,255,0.45)}
+.btn-rf{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;display:flex;align-items:center;gap:6px}
+.btn-rf:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:0 4px 16px var(--accent-glow)}
+.btn-rf:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* LOADING */
+#loading-overlay{position:fixed;inset:0;background:rgba(15,30,54,0.92);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+#loading-overlay.hidden{display:none}
+.spinner{width:48px;height:48px;border:4px solid rgba(233,30,140,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading-text{color:#fff;font-size:14px;font-weight:600}
+#load-error{color:#fb7185;font-size:12px;max-width:420px;text-align:center;margin-top:8px}
+
+.wrap{max-width:1400px;margin:0 auto;padding:24px 24px 40px}
+
+/* TABS */
+.tabs-nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:24px}
+@media(max-width:700px){.tabs-nav{grid-template-columns:repeat(2,1fr)}}
+.tab-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:16px 8px;min-height:88px;background:#fff;border:1px solid var(--border);border-radius:var(--r);color:var(--text-dim);font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;transition:all .2s;text-align:center;position:relative;overflow:hidden;letter-spacing:.04em;text-transform:uppercase;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
+.tab-btn::after{content:'';position:absolute;bottom:0;left:12px;right:12px;height:2px;background:var(--accent);border-radius:2px;transform:scaleX(0);transition:transform .2s;transform-origin:left}
+.tab-btn:hover{color:var(--text);border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 12px rgba(233,30,140,0.1)}
+.tab-btn.active{color:var(--accent);background:#fff0f6;border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 16px var(--accent-glow)}
+.tab-btn.active::after{transform:scaleX(1)}
+.tab-icon{font-size:22px;line-height:1}
+.tab-label{font-size:11px;font-weight:800;line-height:1.2}
+.tab-sub{font-size:9px;font-weight:400;color:var(--text-muted);text-transform:none;letter-spacing:0}
+.tab-btn.active .tab-sub{color:var(--accent2)}
+.tab-pane{display:none}
+.tab-pane.active{display:block;animation:fadeUp .25s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* KPI */
+.kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:18px}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+.kpi:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.1)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r) var(--r) 0 0}
+.kpi.k1::before{background:linear-gradient(90deg,var(--blue),var(--accent2))}
+.kpi.k2::before{background:linear-gradient(90deg,var(--green),#38ffb6)}
+.kpi.k3::before{background:linear-gradient(90deg,var(--red),#ff8c00)}
+.kpi.k4::before{background:linear-gradient(90deg,var(--accent),var(--blue))}
+.kpi.k5::before{background:linear-gradient(90deg,var(--amber),var(--green))}
+.kpi.k6::before{background:linear-gradient(90deg,var(--purple),var(--blue))}
+.kpi-label{font-size:9px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.kpi-val{font-size:28px;font-weight:900;color:var(--text);line-height:1;letter-spacing:-.03em}
+.kpi-sub{font-size:11px;color:var(--text-muted);margin-top:4px}
+.kpi-icon{position:absolute;right:14px;top:14px;font-size:22px;opacity:.15}
+
+/* CARDS */
+.card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+.card-title{font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card-title span{color:var(--text-muted);font-weight:400;font-size:10px;text-transform:none;letter-spacing:0}
+
+/* GRIDS */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+@media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr}}
+
+/* FILTERS */
+.filter-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px 18px}
+.filter-row label{font-size:10px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em}
+select{font-size:12px;font-family:inherit;border:1px solid var(--border);border-radius:8px;padding:6px 12px;background:#fff;color:var(--text);outline:none;cursor:pointer;transition:border-color .2s}
+select:focus{border-color:var(--accent)}
+.search-inp{background:#fff;border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:12px;font-family:inherit;outline:none;width:200px;transition:border-color .2s}
+.search-inp:focus{border-color:var(--accent)}
+
+/* TABLES */
+.tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead tr{background:linear-gradient(135deg,#0f1e36,#1a3a6b)}
+th{color:#fff;padding:10px 12px;text-align:left;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px}
+tbody tr:hover{background:#fff8fb}
+tbody tr:last-child td{border-bottom:none}
+.badge{display:inline-flex;align-items:center;justify-content:center;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap}
+.badge-green{background:#d1fae5;color:#065f46}
+.badge-red{background:#fee2e2;color:#991b1b}
+.badge-amber{background:#fef3c7;color:#92400e}
+.badge-blue{background:#dbeafe;color:#1e40af}
+.badge-gray{background:#f3f4f6;color:#374151}
+
+/* CHART */
+.chart-wrap{position:relative;height:240px}
+.chart-wrap-tall{position:relative;height:300px}
+
+/* RANKING */
+.rank-list{list-style:none;display:flex;flex-direction:column;gap:6px}
+.rank-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f8f9fa;border-radius:10px;border-left:3px solid transparent;transition:all .15s}
+.rank-item.top{border-left-color:var(--green)}
+.rank-item.bot{border-left-color:var(--red)}
+.rank-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0}
+.rank-num.top{background:var(--green);color:#fff}
+.rank-num.bot{background:var(--red);color:#fff}
+.rank-info{flex:1;min-width:0}
+.rank-pat{font-weight:800;font-size:12px;font-family:'JetBrains Mono',monospace}
+.rank-local{font-size:10px;color:var(--text-muted)}
+.rank-bar-wrap{flex:1;min-width:80px}
+.rank-bar-bg{height:6px;background:#e8eaed;border-radius:6px;overflow:hidden}
+.rank-bar-fill{height:100%;border-radius:6px;transition:width .5s ease}
+.rank-fill-top{background:linear-gradient(90deg,var(--green),#38ffb6)}
+.rank-fill-bot{background:linear-gradient(90deg,var(--red),#ff8c00)}
+.rank-val{font-size:12px;font-weight:900;width:30px;text-align:right;flex-shrink:0}
+
+/* FLE GRID */
+.fle-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:4px}
+.fle-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:0 1px 4px rgba(0,0,0,0.06);position:relative;overflow:hidden}
+.fle-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.fle-card.ok::before{background:var(--green)}
+.fle-card.pend::before{background:var(--red)}
+.fle-ppu{font-size:16px;font-weight:900;font-family:'JetBrains Mono',monospace;margin-bottom:8px}
+.fle-progress{height:6px;background:#e8eaed;border-radius:6px;overflow:hidden;margin-bottom:12px}
+.fle-progress-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--green),#38ffb6);transition:width .5s}
+.fle-progress-fill.red{background:linear-gradient(90deg,var(--red),#ff8c00)}
+.fle-items{list-style:none;display:flex;flex-direction:column;gap:6px}
+.fle-item{display:flex;align-items:center;gap:8px;font-size:11px}
+.fle-dot{width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;flex-shrink:0}
+.fle-dot.ok{background:var(--green);color:#fff}
+.fle-dot.pend{background:var(--red);color:#fff}
+
+/* WEEK SELECTOR */
+.week-pills{display:flex;gap:6px;flex-wrap:wrap}
+.week-pill{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;border:1px solid var(--border);background:#fff;cursor:pointer;transition:all .2s}
+.week-pill.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.week-pill:hover:not(.active){border-color:var(--accent);color:var(--accent)}
+
+/* EQUIDAD ZONE */
+.equidad-panel{background:linear-gradient(135deg,#0f1e36,#1a3a6b);border-radius:var(--r);padding:20px;margin-bottom:14px;color:#fff}
+.equidad-title{font-size:13px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.eq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.eq-item{background:rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;border:1px solid rgba(255,255,255,0.12)}
+.eq-local{font-size:10px;font-weight:800;color:rgba(255,255,255,0.6);text-transform:uppercase;margin-bottom:4px}
+.eq-val{font-size:22px;font-weight:900;line-height:1}
+.eq-sub{font-size:10px;color:rgba(255,255,255,0.5);margin-top:3px}
+.eq-alert{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:800;padding:2px 7px;border-radius:20px;margin-top:6px}
+.eq-ok{background:rgba(0,192,127,0.2);color:#38ffb6}
+.eq-warn{background:rgba(245,158,11,0.2);color:#fbbf24}
+.eq-danger{background:rgba(244,63,94,0.2);color:#fb7185}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,#0f1e36,#1a3a6b 55%,#e91e8c);border-radius:22px;padding:26px;margin-bottom:18px;color:#fff;display:grid;grid-template-columns:1.35fr .65fr;gap:18px;box-shadow:0 14px 40px rgba(15,30,54,.18);overflow:hidden;position:relative}
+.hero:after{content:'';position:absolute;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.08);right:-70px;top:-80px}
+.hero h1{font-size:28px;line-height:1.05;letter-spacing:-.04em;margin-bottom:10px}
+.hero p{color:rgba(255,255,255,.72);font-weight:500;max-width:760px}
+.hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.pro-btn{border:0;border-radius:10px;padding:10px 16px;font-family:inherit;font-size:12px;font-weight:900;cursor:pointer;background:#fff;color:#0f1e36;box-shadow:0 5px 18px rgba(0,0,0,.12)}
+.pro-btn.primary{background:var(--accent);color:#fff}
+.pro-btn.ghost{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.24)}
+.hero-panel{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:18px;padding:18px;backdrop-filter:blur(8px);z-index:1}
+.hero-mini{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.12);padding:9px 0}
+.hero-mini:last-child{border-bottom:0}
+.hero-mini strong{font-size:20px}
+.hero-mini span{font-size:11px;color:rgba(255,255,255,.65);font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+.module-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:16px}
+.module-card{background:#fff;border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:0 1px 6px rgba(0,0,0,.06);cursor:pointer;transition:.18s}
+.module-card:hover{transform:translateY(-3px);box-shadow:0 10px 28px rgba(15,30,54,.12);border-color:var(--accent)}
+.module-icon{font-size:28px;margin-bottom:10px}
+.module-title{font-weight:900;font-size:15px;margin-bottom:4px}
+.module-sub{font-size:12px;color:var(--text-muted);line-height:1.35}
+.split-kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.big-num{font-size:42px;font-weight:900;letter-spacing:-.06em}
+.local-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:14px}
+.local-card{background:#fff;border:1px solid var(--border);border-radius:18px;padding:18px;box-shadow:0 1px 6px rgba(0,0,0,.06)}
+.local-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.local-code{font-size:20px;font-weight:900}
+.pill{padding:4px 9px;border-radius:999px;font-size:10px;font-weight:900}
+.pill-rm{background:#dbeafe;color:#1e40af}
+.pill-reg{background:#fef3c7;color:#92400e}
+.local-stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.local-stat div{background:#f8f9fa;border-radius:10px;padding:8px;text-align:center}
+.local-stat strong{display:block;font-size:18px}
+.local-stat span{font-size:9px;color:var(--text-muted);font-weight:800;text-transform:uppercase}
+.patent-result{display:grid;grid-template-columns:1fr;gap:12px}
+.patent-hero{background:linear-gradient(135deg,#0f1e36,#243d66);color:#fff;border-radius:18px;padding:22px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.patent-plate{font-family:'JetBrains Mono',monospace;font-size:34px;font-weight:900;letter-spacing:.02em}
+.patent-meta{color:rgba(255,255,255,.64);font-size:12px;margin-top:4px}
+.mini-table{width:100%;border-collapse:collapse}
+.mini-table td{font-size:12px;padding:5px 0;border-bottom:1px solid var(--border)}
+.mini-table tr:last-child td{border-bottom:none}
+.inhouse-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.person-card{background:#fff;border:1px solid var(--border);border-radius:18px;padding:17px;box-shadow:0 1px 6px rgba(0,0,0,.06)}
+.avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--blue));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;margin-bottom:10px;font-size:15px}
+.search-xl{width:min(520px,100%);padding:13px 15px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);color:#fff;border-radius:12px;outline:none;font-family:'JetBrains Mono',monospace;font-size:16px}
+.search-xl::placeholder{color:rgba(255,255,255,.55)}
+.alert-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:800}
+.alert-ok{background:#d1fae5;color:#065f46}
+.alert-warn{background:#fef3c7;color:#92400e}
+.alert-danger{background:#fee2e2;color:#991b1b}
+@media(max-width:900px){.hero{grid-template-columns:1fr}.split-kpi{grid-template-columns:1fr}}
+@media(max-width:600px){.wrap{padding:12px 12px 32px}}
+</style>
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <div id="loading-text">Cargando datos…</div>
+  <div id="load-error"></div>
+</div>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-logo">Valdi<span>shopper</span></div>
+    <div class="brand-sep"></div>
+    <div class="brand-title">Panel HD · Planificación</div>
+  </div>
+  <div class="topbar-right">
+    <div class="live-dot"></div>
+    <div class="last-upd" id="last-update">—</div>
+    <button class="btn-rf" onclick="loadData(this)">⟳ Actualizar</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="tabs-nav">
+    <button class="tab-btn active" data-tab="inicio" onclick="switchTab('inicio',this)"><span class="tab-icon">🏠</span><span class="tab-label">Inicio</span><span class="tab-sub">Resumen ejecutivo</span></button>
+    <button class="tab-btn" data-tab="patentes" onclick="switchTab('patentes',this)"><span class="tab-icon">🔎</span><span class="tab-label">Buscador</span><span class="tab-sub">Ficha patente</span></button>
+    <button class="tab-btn" data-tab="locales" onclick="switchTab('locales',this)"><span class="tab-icon">🏪</span><span class="tab-label">Locales</span><span class="tab-sub">RM · regiones</span></button>
+    <button class="tab-btn" data-tab="mapeo_flota" onclick="switchTab('mapeo_flota',this)"><span class="tab-icon">🚛</span><span class="tab-label">Mapeo Flota</span><span class="tab-sub">Stock · estado</span></button>
+    <button class="tab-btn" data-tab="check_fle" onclick="switchTab('check_fle',this)"><span class="tab-icon">⚡</span><span class="tab-label">Check FLE</span><span class="tab-sub">Eléctrica</span></button>
+    <button class="tab-btn" data-tab="cit_hd" onclick="switchTab('cit_hd',this)"><span class="tab-icon">📅</span><span class="tab-label">Citaciones</span><span class="tab-sub">Equidad</span></button>
+    <button class="tab-btn" data-tab="inhouse" onclick="switchTab('inhouse',this)"><span class="tab-icon">👥</span><span class="tab-label">Inhouse</span><span class="tab-sub">Responsables</span></button>
+    <button class="tab-btn" data-tab="tarjetas" onclick="switchTab('tarjetas',this)"><span class="tab-icon">💳</span><span class="tab-label">Tarjetas</span><span class="tab-sub">Abonado L58</span></button>
+  </div>
+
+  <!-- ══ INICIO ══ -->
+  <div id="pane-inicio" class="tab-pane active">
+    <div class="hero">
+      <div>
+        <h1>Centro de Control HD Valdishopper</h1>
+        <p>Panel ejecutivo para controlar flota, citaciones, equidad, locales, responsables inhouse y estado operacional en tiempo real desde Google Sheets.</p>
+        <div class="hero-actions">
+          <input id="home-pat-search" class="search-xl" placeholder="Buscar patente… Ej: VJPH71" onkeydown="if(event.key==='Enter')goPatentFromHome()">
+          <button class="pro-btn primary" onclick="goPatentFromHome()">Buscar</button>
+          <button class="pro-btn ghost" onclick="exportCSV()">Exportar CSV</button>
+        </div>
+      </div>
+      <div class="hero-panel" id="home-mini"></div>
+    </div>
+    <div class="kpi-strip" id="home-kpis"></div>
+    <div class="module-grid">
+      <div class="module-card" onclick="switchTab('patentes',document.querySelector('[data-tab=patentes]'))"><div class="module-icon">🔎</div><div class="module-title">Ficha por patente</div><div class="module-sub">Busca una PPU y revisa local, tipo, salidas por semana y estado operativo.</div></div>
+      <div class="module-card" onclick="switchTab('locales',document.querySelector('[data-tab=locales]'))"><div class="module-icon">🏪</div><div class="module-title">Locales RM y regiones</div><div class="module-sub">Resumen por local con flota, activos, inhouse y total de salidas.</div></div>
+      <div class="module-card" onclick="switchTab('cit_hd',document.querySelector('[data-tab=cit_hd]'))"><div class="module-icon">⚖️</div><div class="module-title">Equidad de citaciones</div><div class="module-sub">Detecta sobreuso, bajo uso y balance operacional por local.</div></div>
+      <div class="module-card" onclick="switchTab('mapeo_flota',document.querySelector('[data-tab=mapeo_flota]'))"><div class="module-icon">🧾</div><div class="module-title">Mapeo de Flota</div><div class="module-sub">Telemetría, branding, resolución sanitaria, lamas, separador y TMK.</div></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="card-title">🌎 Flota RM vs Regiones</div><div class="chart-wrap"><canvas id="home-region-chart"></canvas></div></div>
+      <div class="card"><div class="card-title">📌 Top Locales por Salidas</div><div id="home-top-locales"></div></div>
+    </div>
+  </div>
+
+  <!-- ══ BUSCADOR PATENTE ══ -->
+  <div id="pane-patentes" class="tab-pane">
+    <div class="card">
+      <div class="card-title">🔎 Buscador de Patentes <span>ficha operacional completa</span></div>
+      <div class="filter-row" style="margin:0">
+        <input class="search-inp" style="width:300px" id="pat-search" placeholder="Escribe patente…" oninput="renderPatentFinder()">
+        <button class="pro-btn primary" onclick="renderPatentFinder()">Buscar</button>
+      </div>
+    </div>
+    <div id="pat-result" class="patent-result"></div>
+  </div>
+
+  <!-- ══ LOCALES ══ -->
+  <div id="pane-locales" class="tab-pane">
+    <div class="filter-row">
+      <label>Zona:</label><select id="local-zone" onchange="renderLocales()"><option value="ALL">Todos</option><option value="RM">RM</option><option value="REGIONES">Regiones</option></select>
+      <label>Tipo Flota:</label><select id="local-tipo" onchange="renderLocales()"><option value="ALL">Todos</option><option value="FH">FH</option><option value="FLD">FLD</option><option value="FLE">FLE</option></select>
+      <input class="search-inp" id="local-search" placeholder="Buscar local…" oninput="renderLocales()">
+    </div>
+    <div class="split-kpi" style="margin-bottom:14px">
+      <div class="card"><div class="card-title">🏙️ RM <span>L45 y L95</span></div><div class="big-num" id="rm-total">0</div><div class="kpi-sub">Vehículos asignados</div></div>
+      <div class="card"><div class="card-title">🌎 Regiones <span>resto de locales</span></div><div class="big-num" id="reg-total">0</div><div class="kpi-sub">Vehículos asignados</div></div>
+    </div>
+    <div class="local-grid" id="local-grid"></div>
+  </div>
+
+  <!-- ══ MAPEO DE FLOTA ══ -->
+  <div id="pane-mapeo_flota" class="tab-pane">
+    <div class="kpi-strip" id="mf-kpis"></div>
+    <div class="card">
+      <div class="card-title">🧾 Cumplimiento documental <span>Solo FH – Tiene / No / No aplica / %</span></div>
+      <div id="mf-doc-summary" class="kpi-strip"></div>
+    </div>
+    <div class="filter-row">
+      <label>Local:</label><select id="mf-local" onchange="renderMapeoFlota()"><option value="ALL">Todos</option></select>
+      <label>Tipo:</label><select id="mf-tipo" onchange="renderMapeoFlota()"><option value="ALL">Todos</option></select>
+      <label>Status:</label><select id="mf-status" onchange="renderMapeoFlota()"><option value="ALL">Todos</option></select>
+      <label>RS:</label><select id="mf-rs" onchange="renderMapeoFlota()">
+        <option value="ALL">Todos</option>
+        <option value="con_rs">Con RS</option>
+        <option value="sin_rs">Sin RS / Pendiente</option>
+      </select>
+      <label>Telemetría:</label><select id="mf-tele" onchange="renderMapeoFlota()">
+        <option value="ALL">Todos</option>
+        <option value="lista">Instalación Lista</option>
+        <option value="pendiente">Pendiente Instalación</option>
+      </select>
+      <label>Branding:</label><select id="mf-branding" onchange="renderMapeoFlota()">
+        <option value="ALL">Todos</option>
+        <option value="si">Con Branding (Si)</option>
+        <option value="no">Sin Branding (No)</option>
+      </select>
+      <input class="search-inp" id="mf-search" placeholder="🔍 Buscar patente…" oninput="renderMapeoFlota()">
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="card-title">📊 Activos vs No Operativos por Local</div><div class="chart-wrap"><canvas id="mf-chart-local"></canvas></div></div>
+      <div class="card"><div class="card-title">🥧 Distribución por Tipo de Flota</div><div class="chart-wrap"><canvas id="mf-chart-tipo"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📋 Detalle de Flota <span id="mf-count-label"></span></div>
+      <div class="tbl-wrap">
+        <table><thead><tr><th>Tipo</th><th>Local</th><th>Patente</th><th>Status</th><th>RS</th><th>Telemetría</th><th>Branding</th><th>Ambos lados</th><th>Separador</th><th>Lamas</th><th>Piso</th><th>TMK</th><th>Observación</th></tr></thead>
+        <tbody id="mf-tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ CHECK FLE ══ -->
+  <div id="pane-check_fle" class="tab-pane">
+    <div class="kpi-strip" id="fle-kpis"></div>
+    <div class="filter-row">
+      <label>Estado:</label>
+      <select id="fle-filter" onchange="renderFLE()">
+        <option value="ALL">Todos</option><option value="LISTO">Listo</option><option value="PENDIENTE">Pendiente</option>
+      </select>
+    </div>
+    <div class="fle-grid" id="fle-cards"></div>
+  </div>
+
+  <!-- ══ CITACIONES HD ══ -->
+  <div id="pane-cit_hd" class="tab-pane">
+    <div class="kpi-strip" id="cit-kpis"></div>
+    <div class="filter-row" style="margin-bottom:18px">
+      <label>Semana:</label>
+      <div class="week-pills" id="week-pills"></div>
+      <label style="margin-left:8px">Mes:</label>
+      <select id="cit-mes" onchange="renderCitHD()">
+        <option value="ALL">Todos</option>
+        <option value="mayo">Mayo</option>
+        <option value="junio">Junio</option>
+      </select>
+      <label>Local:</label>
+      <select id="cit-local" onchange="renderCitHD()"><option value="ALL">Todos</option></select>
+      <label>Tipo Flota:</label>
+      <select id="cit-tipo" onchange="renderCitHD()"><option value="ALL">Todos</option></select>
+      <input class="search-inp" id="cit-search" placeholder="🔍 Buscar patente…" oninput="renderCitHD()">
+    </div>
+    <div class="equidad-panel" id="eq-panel">
+      <div class="equidad-title">⚖️ Equidad de Citaciones por Local <span style="font-size:11px;font-weight:400;opacity:.6;margin-left:8px">Promedio de salidas – desviación estándar</span></div>
+      <div class="eq-grid" id="eq-grid"></div>
+    </div>
+    <div class="grid3" style="margin-bottom:14px">
+      <div class="card" style="grid-column:span 2">
+        <div class="card-title">📊 Salidas por Patente (Top 20)</div>
+        <div class="chart-wrap-tall"><canvas id="cit-bar-chart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🥧 % de Salidas por Local</div>
+        <div class="chart-wrap-tall"><canvas id="cit-pie-local"></canvas></div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-bottom:14px">
+      <div class="card">
+        <div class="card-title">📈 Móviles con salida por semana y tipo</div>
+        <div class="chart-wrap"><canvas id="cit-weekly-chart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🥧 % Distribución por Tipo de Flota</div>
+        <div class="chart-wrap"><canvas id="cit-pie-tipo"></canvas></div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-bottom:14px">
+      <div class="card">
+        <div class="card-title">🏆 Top 10 – Mayor cantidad de salidas</div>
+        <ul class="rank-list" id="rank-top"></ul>
+      </div>
+      <div class="card">
+        <div class="card-title">⚠️ Bottom 10 – Menor cantidad de salidas</div>
+        <ul class="rank-list" id="rank-bot"></ul>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📋 Detalle por Vehículo <span id="cit-count-label"></span></div>
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px;font-size:11px;font-weight:700">
+        <span style="color:var(--text-muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em">SEMÁFORO:</span>
+        <span><span style="background:#00c07f;color:#fff;padding:2px 9px;border-radius:6px">▲</span> Alto</span>
+        <span><span style="background:#f59e0b;color:#fff;padding:2px 9px;border-radius:6px">●</span> Medio</span>
+        <span><span style="background:#f43f5e;color:#fff;padding:2px 9px;border-radius:6px">▼</span> Bajo / Sin salidas</span>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr>
+          <th>#</th><th>Local</th><th>Tipo</th><th>Patente</th>
+          <th>S18</th><th>S19</th><th>S20</th><th>S21</th><th>S22</th><th>S23</th>
+          <th>Total Mayo</th><th>Total Junio</th><th>Total Gral</th><th>Desviación</th>
+        </tr></thead>
+        <tbody id="cit-tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ INHOUSE ══ -->
+  <div id="pane-inhouse" class="tab-pane">
+    <div class="card">
+      <div class="card-title">👥 Inhouse por Local <span>cargado desde hoja "Inhouse" del Google Sheet</span></div>
+      <div class="inhouse-grid" id="inhouse-grid"></div>
+    </div>
+  </div>
+
+  <!-- ══ TARJETAS DE ABONADO ══ -->
+  <div id="pane-tarjetas" class="tab-pane">
+    <div class="card">
+      <div class="card-title">💳 Tarjetas de Abonado <span>L58 – cargado desde hoja "Tarjetas de abonado L58"</span></div>
+      <div class="filter-row" style="margin:0 0 12px">
+        <input class="search-inp" id="tarj-search" placeholder="🔍 Buscar nombre, tarjeta o patente…" oninput="renderTarjetas()">
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr><th>N°</th><th>Nombre Abonado</th><th>N° Tarjeta</th><th>Patente</th></tr></thead>
+        <tbody id="tarj-tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+// ──────────────────────────────────────────────────────────
+// CONFIGURACIÓN
+// ──────────────────────────────────────────────────────────
+// Para publicar en GitHub Pages, el Google Sheet DEBE estar publicado como CSV:
+// Archivo → Compartir → Publicar en la web → Formato CSV → Publicar
+// El PUB_ID es el ID largo de la URL de publicación.
+const PUB_ID = '2PACX-1vT6g1cwKLH83Ep53fRDzaXh8o1LR49M-E8BO8HZo6fFBXjLZLNiFXLa51QTGQnlQU8RDAyWlpn6zxMj';
+
+// Nombres EXACTOS de pestañas en el Google Sheet (case-sensitive)
+const SHEET_NAMES = {
+  mapeo:    'Mapeo flota',          // Col: TIpo, Local, Patente, Status, Resolucion Sanitaria, Telemetria, Branding Si/No, ¿Ambos lados?, Separador, lamas, piso, TMK, Observacion
+  checkFle: 'Check FLE',            // Transpuesta: col 0 = ítem, col 1..N = patentes
+  citHD:    'Citaciones HD',        // Col: Tipo, Local, Patente, Días S18..S23, Citacion Mayo, Citacion Junio, Semanas Activo, Total Días
+  inhouse:  'Inhouse',              // Col: Nro Local, Responsable, Cargo, Telefono
+  tarjetas: 'Tarjetas de abonado L58' // Col: N°, Nombre Abonado, N° Tarjeta, Patente
+};
+
+// Locales activos (basado en hoja "Locales")
+const LOCAL_MASTER = ['L45','L58','L94','L95','L98','L99','L120','L121','L608','L618','L657'];
+const RM_LOCALES   = new Set(['L45','L95']);
+
+Chart.defaults.color = '#5a6a7e';
+Chart.defaults.borderColor = 'rgba(0,0,0,0.06)';
+
+// Plugin: etiquetas de valor en barras
+const valueLabelPlugin = {
+  id:'valueLabels',
+  afterDatasetsDraw(chart,_,opts){
+    if(!opts||opts.enabled===false)return;
+    const {ctx}=chart;
+    ctx.save();
+    ctx.font='700 11px Plus Jakarta Sans';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    chart.data.datasets.forEach((ds,di)=>{
+      const meta=chart.getDatasetMeta(di);
+      if(meta.hidden)return;
+      meta.data.forEach((el,i)=>{
+        const raw=ds.data[i];
+        if(raw===null||raw===undefined||raw==='')return;
+        const val=Number(raw);
+        if(!Number.isFinite(val)||val===0)return;
+        const pos=el.tooltipPosition();
+        ctx.fillStyle=chart.config.type==='doughnut'||chart.config.type==='pie'?'#fff':'#1a2332';
+        const yOff=chart.config.type==='bar'?-10:chart.config.type==='line'?-12:0;
+        ctx.fillText(String(raw),pos.x,pos.y+yOff);
+      });
+    });
+    ctx.restore();
+  }
+};
+Chart.register(valueLabelPlugin);
+
+// ──────────────────────────────────────────────────────────
+// ESTADO GLOBAL
+// ──────────────────────────────────────────────────────────
+let FLOTA_ACTUAL = [];  // "Mapeo flota"
+let FLE_DATA     = [];  // "Check FLE"
+let CIT_HD       = [];  // "Citaciones HD"
+let INHOUSE_DATA = [];  // "Inhouse"
+let TARJETAS_DATA= [];  // "Tarjetas de abonado L58"
+
+let chartLocal=null,chartTipo=null,homeRegionChart=null;
+let citBarChart=null,citPieLocal=null,citPieTipo=null,citWeekly=null;
+let selectedWeeks = new Set(['ALL']);
+
+// ──────────────────────────────────────────────────────────
+// HELPERS
+// ──────────────────────────────────────────────────────────
+function sheetCsvUrl(name){
+  return `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?output=csv&sheet=${encodeURIComponent(name)}`;
+}
+function parseCsv(txt){
+  const lines=txt.split(/\r?\n/);
+  if(!lines.length)return{cols:[],rows:[]};
+  function splitLine(line){
+    const res=[];let cur='';let inQ=false;
+    for(let i=0;i<line.length;i++){
+      const c=line[i];
+      if(c==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
+      else if(c===','&&!inQ){res.push(cur);cur='';}
+      else cur+=c;
+    }
+    res.push(cur);return res;
+  }
+  const cols=splitLine(lines[0]);
+  const rows=[];
+  for(let i=1;i<lines.length;i++){
+    if(!lines[i].trim())continue;
+    const vals=splitLine(lines[i]);
+    const obj={};
+    cols.forEach((c,j)=>{obj[c]=(vals[j]||'').trim();});
+    rows.push(obj);
+  }
+  return{cols,rows};
+}
+async function fetchSheet(name){
+  const url=sheetCsvUrl(name);
+  const res=await fetch(url);
+  if(!res.ok)throw new Error(`HTTP ${res.status} al cargar hoja: "${name}"`);
+  const txt=await res.text();
+  if(txt.trim().startsWith('<'))throw new Error(`Hoja no encontrada o Sheet no publicado: "${name}"`);
+  return parseCsv(txt);
+}
+
+function setLoad(m){document.getElementById('loading-text').textContent=m;}
+function showLoadError(m){document.getElementById('load-error').textContent=m;}
+function hideLoad(){document.getElementById('loading-overlay').classList.add('hidden');}
+
+function fillSel(id,opts){
+  const sel=document.getElementById(id);
+  const cur=sel.value;
+  while(sel.options.length>1)sel.remove(1);
+  opts.forEach(o=>{const op=document.createElement('option');op.value=o;op.textContent=o;sel.appendChild(op);});
+  if([...sel.options].some(o=>o.value===cur))sel.value=cur;
+}
+function destroyChart(ref){if(ref)try{ref.destroy()}catch(e){}}
+function n(v){const x=Number(String(v).replace(',','.'));return isNaN(x)?0:x;}
+function normLocal(l){
+  let x=String(l||'').trim().replace(/\s.*$/,''); // quita todo después de espacio (e.g. "L120 (Temuco)")
+  x=x.toUpperCase();
+  if(/^\d+$/.test(x))x='L'+x;
+  if(!/^L/.test(x))x='L'+x;
+  return x;
+}
+function zoneOf(l){return RM_LOCALES.has(normLocal(l))?'RM':'REGIONES';}
+
+// Normaliza un valor de celda a: 'tiene' | 'no' | 'no_aplica'
+function estadoBucket(v){
+  const s=String(v||'').trim().toLowerCase();
+  if(!s||s==='—'||s==='-'||s==='n/a'||s==='na'||s.includes('no aplica'))return 'no_aplica';
+  if(s==='si'||s==='sí'||s.includes('si cuenta')||s.includes('lista')||s.includes('✅')||s==='ok'||s.includes('vigente'))return 'tiene';
+  if(s==='no'||s.includes('❌')||s.includes('pend')||s.includes('falta')||s.includes('sin ')||s.includes('no cuenta'))return 'no';
+  return 'no_aplica';
+}
+function pct(a,b){return b?Math.round(a/b*100):0;}
+
+function statusBadge(s){
+  const sl=String(s||'').toLowerCase().trim();
+  if(!sl||sl==='—'||sl==='-'||sl==='')return`<span class="badge badge-gray">—</span>`;
+  if(sl.includes('activ')||sl==='listo'||sl.includes('si cuenta')||sl.includes('instalacion lista')||sl==='si'||sl==='sí'||sl==='✅')return`<span class="badge badge-green">${s}</span>`;
+  if(sl.includes('no op')||sl==='❌'||sl.includes('no cuenta')||sl==='no'||sl.includes('no cumple'))return`<span class="badge badge-red">${s}</span>`;
+  if(sl.includes('no aplica')||sl==='n/a'||sl==='na')return`<span class="badge badge-gray">${s}</span>`;
+  if(sl.includes('pend')||sl.includes('revisar'))return`<span class="badge badge-amber">${s}</span>`;
+  return`<span class="badge badge-gray">${s||'—'}</span>`;
+}
+
+// ──────────────────────────────────────────────────────────
+// CARGA DE DATOS
+// ──────────────────────────────────────────────────────────
+async function loadData(btn){
+  if(btn){btn.disabled=true;btn.textContent='Cargando…';}
+  document.getElementById('loading-overlay').classList.remove('hidden');
+  document.getElementById('load-error').textContent='';
+  const errors=[];
+  let anyLoaded=false;
+
+  // 1. Mapeo flota
+  try{
+    setLoad('Cargando Mapeo de Flota…');
+    const {rows}=await fetchSheet(SHEET_NAMES.mapeo);
+    const valid=rows.filter(r=>r['Patente']&&r['Patente'].trim());
+    if(valid.length){
+      FLOTA_ACTUAL=valid.map(r=>({
+        tipo:    (r['TIpo']||r['Tipo']||'').trim(),
+        local:   normLocal(r['Local']||''),
+        patente: (r['Patente']||'').trim(),
+        status:  (r['Status']||'').trim(),
+        rs:      (r['Resolucion Sanitaria']||'').trim(),
+        telemetria:(r['Telemetria']||'').trim(),
+        branding:  (r['Branding Si/No']||'').trim(),
+        ambos:     (r['¿Ambos lados?']||'').trim(),
+        sep:       (r['Separador']||'').trim(),
+        lamas:     (r['lamas']||'').trim(),
+        piso:      (r['piso']||'').trim(),
+        tmk:       (r['TMK']||'').trim(),
+        obs:       (r['Observacion']||'').trim()
+      }));
+      anyLoaded=true;
+    }
+  }catch(e){errors.push('Mapeo flota: '+e.message);console.error(e);}
+
+  // 2. Check FLE (hoja transpuesta)
+  try{
+    setLoad('Cargando Check FLE…');
+    const {cols,rows}=await fetchSheet(SHEET_NAMES.checkFle);
+    // cols[0] = nombre del ítem, cols[1..N] = PPU
+    const itemCol=cols[0]||'';
+    const patentes=cols.slice(1).filter(Boolean);
+    if(patentes.length){
+      const map={};
+      patentes.forEach(p=>{map[p]={ppu:p,estado:'LISTO',items:[]};});
+      rows.forEach(row=>{
+        const item=(row[itemCol]||'').trim();
+        if(!item||item.startsWith('%'))return; // saltar filas de porcentaje/estado
+        patentes.forEach(p=>{
+          const val=String(row[p]||'').trim();
+          const listo=val.toUpperCase()==='TRUE'||val==='1'||val.toLowerCase()==='si'||val==='✅';
+          if(map[p])map[p].items.push({texto:item,listo});
+        });
+      });
+      // Determinar estado: LISTO sólo si TODOS los ítems están ok
+      Object.values(map).forEach(v=>{
+        if(v.items.length&&v.items.every(i=>i.listo))v.estado='LISTO';
+        else if(v.items.length)v.estado='PENDIENTE';
+      });
+      FLE_DATA=Object.values(map).filter(v=>v.items.length>0);
+      anyLoaded=true;
+    }
+  }catch(e){errors.push('Check FLE: '+e.message);console.error(e);}
+
+  // 3. Citaciones HD
+  try{
+    setLoad('Cargando Citaciones HD…');
+    const {rows}=await fetchSheet(SHEET_NAMES.citHD);
+    const valid=rows.filter(r=>r['Patente']&&r['Patente'].trim());
+    if(valid.length){
+      CIT_HD=valid.map(r=>({
+        tipo:      (r['Tipo']||r['TIpo']||'').trim(),
+        local:     normLocal(r['Local']||''),
+        patente:   (r['Patente']||'').trim(),
+        s18:       n(r['Días S18']||0),
+        s19:       n(r['Días S19']||0),
+        s20:       n(r['Días S20']||0),
+        s21:       n(r['Días S21']||0),
+        s22:       n(r['Días S22']||0),
+        s23:       n(r['Días S23']||0),
+        totalMayo: n(r['Citacion Mayo']||0),
+        totalJunio:n(r['Citacion Junio']||0),
+        totalGral: n(r['Total Días']||0)
+      }));
+      anyLoaded=true;
+    }
+  }catch(e){errors.push('Citaciones HD: '+e.message);console.error(e);}
+
+  // 4. Inhouse
+  try{
+    setLoad('Cargando Inhouse…');
+    const {rows}=await fetchSheet(SHEET_NAMES.inhouse);
+    const valid=rows.filter(r=>(r['Nro Local']||r['Local'])&&(r['Responsable']||r['Nombre']));
+    if(valid.length){
+      INHOUSE_DATA=valid.map(r=>({
+        local:    normLocal(r['Nro Local']||r['Local']||''),
+        nombre:   (r['Responsable']||r['Nombre']||'').trim(),
+        cargo:    (r['Cargo']||r['Cargo ']||'Inhouse').trim(),
+        telefono: (r['Telefono']||r['Teléfono']||'').trim()
+      })).filter(x=>x.local&&x.nombre);
+      anyLoaded=true;
+    }
+  }catch(e){errors.push('Inhouse: '+e.message);console.error(e);}
+
+  // 5. Tarjetas de abonado L58
+  try{
+    setLoad('Cargando Tarjetas de Abonado…');
+    const {rows}=await fetchSheet(SHEET_NAMES.tarjetas);
+    const valid=rows.filter(r=>r['Nombre Abonado']||r['N° Tarjeta']);
+    if(valid.length){
+      TARJETAS_DATA=valid.map(r=>({
+        n:       (r['N°']||'').trim(),
+        nombre:  (r['Nombre Abonado']||'').trim(),
+        tarjeta: (r['N° Tarjeta']||'').trim(),
+        patente: (r['Patente']||'').trim()
+      }));
+      anyLoaded=true;
+    }
+  }catch(e){errors.push('Tarjetas: '+e.message);console.error(e);}
+
+  // Fallback datos embebidos si todo falló
+  if(!FLOTA_ACTUAL.length)FLOTA_ACTUAL=_FB.FLOTA_ACTUAL;
+  if(!FLE_DATA.length)FLE_DATA=_FB.FLE_DATA;
+  if(!CIT_HD.length)CIT_HD=_FB.CIT_HD;
+  if(!INHOUSE_DATA.length)INHOUSE_DATA=_FB.INHOUSE;
+  if(!TARJETAS_DATA.length)TARJETAS_DATA=_FB.TARJETAS;
+
+  const ts=new Date().toLocaleString('es-CL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('last-update').textContent=ts+(anyLoaded?' · Google Sheets':' · datos locales');
+
+  if(errors.length){
+    showLoadError('⚠ Algunas hojas no se pudieron cargar: '+errors.join(' | ')+'. Verifica que el Sheet esté publicado como CSV.');
+  }
+  hideLoad();
+  renderAll();
+  if(btn){btn.disabled=false;btn.textContent='⟳ Actualizar';}
+}
+
+// ──────────────────────────────────────────────────────────
+// RENDER ALL
+// ──────────────────────────────────────────────────────────
+function renderAll(){
+  renderInicio();
+  initMF(); renderMapeoFlota();
+  renderFLE();
+  initCitHD(); renderCitHD();
+  renderLocales();
+  renderInhouse();
+  renderTarjetas();
+  renderPatentFinder();
+}
+
+function switchTab(id,btn){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pane-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ──────────────────────────────────────────────────────────
+// INICIO
+// ──────────────────────────────────────────────────────────
+function getLocalSummary(tipoF='ALL'){
+  const out={};
+  LOCAL_MASTER.forEach(l=>{out[l]={local:l,total:0,act:0,no:0,tipos:{},salidas:0,inhouse:0};});
+  FLOTA_ACTUAL.filter(r=>tipoF==='ALL'||r.tipo===tipoF).forEach(r=>{
+    const l=r.local||'?';
+    if(!out[l])out[l]={local:l,total:0,act:0,no:0,tipos:{},salidas:0,inhouse:0};
+    out[l].total++;
+    if(String(r.status).toLowerCase().includes('activo'))out[l].act++;else out[l].no++;
+    out[l].tipos[r.tipo||'?']=(out[l].tipos[r.tipo||'?']||0)+1;
+  });
+  CIT_HD.filter(r=>tipoF==='ALL'||r.tipo===tipoF).forEach(r=>{
+    const l=r.local||'?';
+    if(!out[l])out[l]={local:l,total:0,act:0,no:0,tipos:{},salidas:0,inhouse:0};
+    out[l].salidas+=(r.totalGral||0);
+  });
+  INHOUSE_DATA.forEach(p=>{
+    const l=p.local||'?';
+    if(!out[l])out[l]={local:l,total:0,act:0,no:0,tipos:{},salidas:0,inhouse:0};
+    out[l].inhouse++;
+  });
+  return Object.values(out).sort((a,b)=>LOCAL_MASTER.indexOf(a.local)-LOCAL_MASTER.indexOf(b.local)||a.local.localeCompare(b.local));
+}
+
+function allPatentes(){
+  const map={};
+  FLOTA_ACTUAL.forEach(r=>{if(r.patente)map[r.patente]={...r};});
+  CIT_HD.forEach(r=>{if(r.patente){if(!map[r.patente])map[r.patente]={patente:r.patente,local:r.local,tipo:r.tipo};map[r.patente].cit=r;}});
+  return Object.values(map);
+}
+
+function renderInicio(){
+  const total=FLOTA_ACTUAL.length;
+  const activos=FLOTA_ACTUAL.filter(r=>String(r.status).toLowerCase().includes('activo')).length;
+  const rm=FLOTA_ACTUAL.filter(r=>zoneOf(r.local)==='RM').length;
+  const reg=FLOTA_ACTUAL.filter(r=>zoneOf(r.local)==='REGIONES').length;
+  const salidas=CIT_HD.reduce((s,r)=>s+(r.totalGral||0),0);
+  const locales=getLocalSummary().filter(x=>x.total>0||x.salidas>0).length;
+
+  document.getElementById('home-mini').innerHTML=`
+    <div class="hero-mini"><span>Flota total</span><strong>${total}</strong></div>
+    <div class="hero-mini"><span>Activos</span><strong>${activos}</strong></div>
+    <div class="hero-mini"><span>Salidas total</span><strong>${salidas}</strong></div>
+    <div class="hero-mini"><span>Locales</span><strong>${locales}</strong></div>`;
+
+  document.getElementById('home-kpis').innerHTML=`
+    <div class="kpi k1"><div class="kpi-label">Total Flota</div><div class="kpi-val">${total}</div><div class="kpi-icon">🚛</div></div>
+    <div class="kpi k2"><div class="kpi-label">Activos</div><div class="kpi-val">${activos}</div><div class="kpi-icon">✅</div></div>
+    <div class="kpi k3"><div class="kpi-label">No Operativos</div><div class="kpi-val">${total-activos}</div><div class="kpi-icon">🔴</div></div>
+    <div class="kpi k4"><div class="kpi-label">RM</div><div class="kpi-val">${rm}</div><div class="kpi-icon">🏙️</div></div>
+    <div class="kpi k5"><div class="kpi-label">Regiones</div><div class="kpi-val">${reg}</div><div class="kpi-icon">🌎</div></div>
+    <div class="kpi k6"><div class="kpi-label">Total Salidas</div><div class="kpi-val">${salidas}</div><div class="kpi-icon">📅</div></div>`;
+
+  destroyChart(homeRegionChart);
+  homeRegionChart=new Chart(document.getElementById('home-region-chart'),{
+    type:'doughnut',
+    data:{labels:['RM','Regiones'],datasets:[{data:[rm,reg],backgroundColor:['#2563eb','#e91e8c'],borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'},valueLabels:{enabled:true}},cutout:'62%'}
+  });
+
+  const byLocal={};
+  CIT_HD.forEach(r=>{byLocal[r.local]=(byLocal[r.local]||0)+(r.totalGral||0);});
+  const topRows=Object.entries(byLocal).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const max=Math.max(...topRows.map(r=>r[1]),1);
+  document.getElementById('home-top-locales').innerHTML=topRows.map(([l,v])=>`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <b style="width:60px">${l}</b>
+      <div style="flex:1;height:8px;background:#e8eaed;border-radius:8px;overflow:hidden">
+        <div style="height:100%;width:${Math.round(v/max*100)}%;background:linear-gradient(90deg,#0f1e36,#e91e8c)"></div>
+      </div>
+      <strong>${v}</strong>
+    </div>`).join('');
+}
+
+// ──────────────────────────────────────────────────────────
+// LOCALES
+// ──────────────────────────────────────────────────────────
+function renderLocales(){
+  const z=document.getElementById('local-zone')?.value||'ALL';
+  const tipoF=document.getElementById('local-tipo')?.value||'ALL';
+  const q=(document.getElementById('local-search')?.value||'').toLowerCase();
+  const all=getLocalSummary(tipoF);
+  document.getElementById('rm-total').textContent=all.filter(x=>zoneOf(x.local)==='RM').reduce((s,x)=>s+x.total,0);
+  document.getElementById('reg-total').textContent=all.filter(x=>zoneOf(x.local)==='REGIONES').reduce((s,x)=>s+x.total,0);
+  const data=all.filter(x=>(z==='ALL'||zoneOf(x.local)===z)&&(!q||x.local.toLowerCase().includes(q)));
+  document.getElementById('local-grid').innerHTML=data.map(x=>{
+    const tipos=Object.entries(x.tipos).map(([k,v])=>`<span class="badge badge-blue" style="margin:2px">${k}: ${v}</span>`).join('');
+    return`<div class="local-card">
+      <div class="local-head">
+        <div class="local-code">${x.local}</div>
+        <span class="pill ${zoneOf(x.local)==='RM'?'pill-rm':'pill-reg'}">${zoneOf(x.local)}</span>
+      </div>
+      <div>${tipos||'<span class="badge badge-gray">Sin flota</span>'}</div>
+      <div class="local-stat">
+        <div><strong>${x.total}</strong><span>Flota</span></div>
+        <div><strong>${x.act}</strong><span>Activa</span></div>
+        <div><strong>${x.inhouse}</strong><span>Inhouse</span></div>
+      </div>
+      <div class="local-stat" style="grid-template-columns:1fr;margin-top:8px">
+        <div><strong>${x.salidas}</strong><span>Salidas</span></div>
+      </div>
+      <button class="pro-btn primary" style="margin-top:12px;width:100%" onclick="openLocal('${x.local}')">Ver patentes</button>
+    </div>`;
+  }).join('');
+}
+function openLocal(l){
+  switchTab('mapeo_flota',document.querySelector('[data-tab=mapeo_flota]'));
+  setTimeout(()=>{document.getElementById('mf-local').value=l;renderMapeoFlota();},50);
+}
+
+// ──────────────────────────────────────────────────────────
+// BUSCADOR PATENTE
+// ──────────────────────────────────────────────────────────
+function renderPatentFinder(){
+  const q=(document.getElementById('pat-search')?.value||'').trim().toUpperCase();
+  const cont=document.getElementById('pat-result');
+  if(!cont)return;
+  if(!q){cont.innerHTML='<div class="card"><div class="card-title">Escribe una patente para consultar</div><p style="color:var(--text-muted)">Ejemplo: VJPH71, PPXL56, KZZY17.</p></div>';return;}
+  const item=allPatentes().find(r=>String(r.patente).toUpperCase().includes(q));
+  if(!item){cont.innerHTML='<div class="card"><div class="card-title">Sin resultados</div><p>No encontré esa patente en flota ni citaciones.</p></div>';return;}
+  const cit=item.cit||{};
+  cont.innerHTML=`
+    <div class="patent-hero">
+      <div>
+        <div class="patent-plate">${item.patente}</div>
+        <div class="patent-meta">${item.local||'Sin local'} · ${item.tipo||cit.tipo||'Sin tipo'} · ${zoneOf(item.local)}</div>
+      </div>
+      <div>${statusBadge(item.status||'—')}</div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="card-title">📅 Citaciones (Semanas S18–S23)</div>
+        <table class="mini-table">
+          <tr><td>S18</td><td>${cit.s18??0}</td></tr>
+          <tr><td>S19</td><td>${cit.s19??0}</td></tr>
+          <tr><td>S20</td><td>${cit.s20??0}</td></tr>
+          <tr><td>S21</td><td>${cit.s21??0}</td></tr>
+          <tr><td>S22</td><td>${cit.s22??0}</td></tr>
+          <tr><td>S23</td><td>${cit.s23??0}</td></tr>
+          <tr><td><b>Total Mayo</b></td><td><b>${cit.totalMayo??0}</b></td></tr>
+          <tr><td><b>Total Junio</b></td><td><b>${cit.totalJunio??0}</b></td></tr>
+          <tr><td><b>Total General</b></td><td><b>${cit.totalGral??0}</b></td></tr>
+        </table>
+      </div>
+      <div class="card"><div class="card-title">🧾 Estado operacional (Mapeo Flota)</div>
+        <table class="mini-table">
+          <tr><td>Status</td><td>${statusBadge(item.status||'—')}</td></tr>
+          <tr><td>RS</td><td>${statusBadge(item.rs||'—')}</td></tr>
+          <tr><td>Telemetría</td><td>${statusBadge(item.telemetria||'—')}</td></tr>
+          <tr><td>Branding</td><td>${statusBadge(item.branding||'—')}</td></tr>
+          <tr><td>Ambos lados</td><td>${statusBadge(item.ambos||'—')}</td></tr>
+          <tr><td>Separador</td><td>${statusBadge(item.sep||'—')}</td></tr>
+          <tr><td>Lamas</td><td>${statusBadge(item.lamas||'—')}</td></tr>
+          <tr><td>Piso</td><td>${statusBadge(item.piso||'—')}</td></tr>
+          <tr><td>TMK</td><td>${statusBadge(item.tmk||'—')}</td></tr>
+          <tr><td>Obs.</td><td style="color:var(--text-muted)">${item.obs||'—'}</td></tr>
+        </table>
+      </div>
+    </div>`;
+}
+function goPatentFromHome(){
+  const v=document.getElementById('home-pat-search').value;
+  switchTab('patentes',document.querySelector('[data-tab=patentes]'));
+  setTimeout(()=>{document.getElementById('pat-search').value=v;renderPatentFinder();},50);
+}
+
+// ──────────────────────────────────────────────────────────
+// INHOUSE
+// ──────────────────────────────────────────────────────────
+function renderInhouse(){
+  const locals=getLocalSummary();
+  const by=Object.fromEntries(locals.map(l=>[l.local,l]));
+  const people=[...INHOUSE_DATA].sort((a,b)=>a.local.localeCompare(b.local)||a.nombre.localeCompare(b.nombre));
+  document.getElementById('inhouse-grid').innerHTML=people.map(p=>{
+    const x=by[p.local]||{total:0,salidas:0};
+    const iniciales=p.nombre.split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('');
+    return`<div class="person-card">
+      <div class="avatar">${iniciales}</div>
+      <div class="module-title">${p.nombre}</div>
+      <div class="module-sub">${p.cargo} · ${p.local}</div>
+      ${p.telefono?`<div style="margin-top:6px;color:var(--text-muted);font-size:11px">📞 ${p.telefono}</div>`:''}
+      <div style="margin-top:12px">
+        <span class="badge badge-blue">${p.local}</span>
+        <span class="badge badge-green">${x.total} flota</span>
+        <span class="badge badge-amber">${x.salidas} salidas</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ──────────────────────────────────────────────────────────
+// TARJETAS DE ABONADO
+// ──────────────────────────────────────────────────────────
+function renderTarjetas(){
+  const q=(document.getElementById('tarj-search').value||'').toLowerCase();
+  const data=TARJETAS_DATA.filter(r=>!q||
+    r.nombre.toLowerCase().includes(q)||
+    String(r.tarjeta).toLowerCase().includes(q)||
+    r.patente.toLowerCase().includes(q));
+  document.getElementById('tarj-tbody').innerHTML=data.length
+    ? data.map(r=>`<tr><td>${r.n}</td><td>${r.nombre}</td><td>${r.tarjeta}</td><td>${r.patente}</td></tr>`).join('')
+    : '<tr><td colspan="4" style="text-align:center;color:var(--text-muted)">Sin resultados</td></tr>';
+}
+
+// ──────────────────────────────────────────────────────────
+// EXPORTAR CSV
+// ──────────────────────────────────────────────────────────
+function exportCSV(){
+  const rows=[['Local','Tipo','Patente','Status','RS','Telemetria','Branding','Separador','Lamas','Piso','TMK','Observacion'],
+    ...FLOTA_ACTUAL.map(r=>[r.local,r.tipo,r.patente,r.status,r.rs,r.telemetria,r.branding,r.sep,r.lamas,r.piso,r.tmk,r.obs])];
+  const csv=rows.map(r=>r.map(x=>`"${String(x??'').replaceAll('"','""')}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='flota_valdishopper.csv';a.click();URL.revokeObjectURL(a.href);
+}
+
+// ──────────────────────────────────────────────────────────
+// MAPEO DE FLOTA
+// ──────────────────────────────────────────────────────────
+function initMF(){
+  fillSel('mf-local',[...new Set(FLOTA_ACTUAL.map(r=>r.local).filter(Boolean))].sort());
+  fillSel('mf-tipo',[...new Set(FLOTA_ACTUAL.map(r=>r.tipo).filter(Boolean))].sort());
+  fillSel('mf-status',[...new Set(FLOTA_ACTUAL.map(r=>r.status).filter(Boolean))].sort());
+}
+function renderMapeoFlota(){
+  const l=document.getElementById('mf-local').value;
+  const t=document.getElementById('mf-tipo').value;
+  const s=document.getElementById('mf-status').value;
+  const rsF=document.getElementById('mf-rs')?.value||'ALL';
+  const teleF=document.getElementById('mf-tele')?.value||'ALL';
+  const brandF=document.getElementById('mf-branding')?.value||'ALL';
+  const q=document.getElementById('mf-search').value.toLowerCase();
+
+  const data=FLOTA_ACTUAL.filter(r=>{
+    if(l!=='ALL'&&r.local!==l)return false;
+    if(t!=='ALL'&&r.tipo!==t)return false;
+    if(s!=='ALL'&&r.status!==s)return false;
+    if(q&&!(r.patente||'').toLowerCase().includes(q)&&!(r.local||'').toLowerCase().includes(q))return false;
+    if(rsF==='con_rs'&&!String(r.rs).toLowerCase().includes('cuenta'))return false;
+    if(rsF==='sin_rs'&&String(r.rs).toLowerCase().includes('cuenta'))return false;
+    if(teleF==='lista'&&!String(r.telemetria).toLowerCase().includes('lista'))return false;
+    if(teleF==='pendiente'&&String(r.telemetria).toLowerCase().includes('lista'))return false;
+    if(brandF==='si'&&String(r.branding).toLowerCase()!=='si')return false;
+    if(brandF==='no'&&String(r.branding).toLowerCase()==='si')return false;
+    return true;
+  });
+
+  const activos=data.filter(r=>String(r.status).toLowerCase().includes('activo')).length;
+  document.getElementById('mf-kpis').innerHTML=`
+    <div class="kpi k1"><div class="kpi-label">Total Vehículos</div><div class="kpi-val">${data.length}</div><div class="kpi-icon">🚗</div></div>
+    <div class="kpi k2"><div class="kpi-label">Activos</div><div class="kpi-val">${activos}</div><div class="kpi-icon">✅</div></div>
+    <div class="kpi k3"><div class="kpi-label">No Operativos</div><div class="kpi-val">${data.length-activos}</div><div class="kpi-icon">🔴</div></div>
+    <div class="kpi k4"><div class="kpi-label">Locales</div><div class="kpi-val">${[...new Set(data.map(r=>r.local).filter(Boolean))].length}</div><div class="kpi-icon">🏪</div></div>`;
+
+  // Resumen documental (solo FH - aplica la hoja de Mapeo flota)
+  const docData=data.filter(r=>r.tipo==='FH');
+  const docItems=[['RS','rs'],['Telemetría','telemetria'],['Branding','branding'],['Separador','sep'],['Lamas','lamas'],['Piso','piso'],['TMK','tmk'],['Ambos lados','ambos']];
+  document.getElementById('mf-doc-summary').innerHTML=docData.length
+    ? docItems.map(([label,key])=>{
+        const buckets={tiene:0,no:0,no_aplica:0};
+        docData.forEach(r=>{buckets[estadoBucket(r[key])]++;});
+        return`<div class="kpi">
+          <div class="kpi-label">${label}</div>
+          <div class="kpi-val" style="font-size:24px">${pct(buckets.tiene,docData.length)}%</div>
+          <div class="kpi-sub">Tiene: <b>${buckets.tiene}</b> · No: <b>${buckets.no}</b> · N/A: <b>${buckets.no_aplica}</b></div>
+        </div>`;
+      }).join('')
+    : '<p style="color:var(--text-muted);font-size:12px">Selecciona tipo FH para ver el resumen documental.</p>';
+
+  document.getElementById('mf-count-label').textContent=`(${data.length} vehículos)`;
+
+  document.getElementById('mf-tbody').innerHTML=data.map(r=>`<tr>
+    <td><span class="badge badge-blue">${r.tipo||'—'}</span></td>
+    <td>${r.local||'—'}</td>
+    <td style="font-weight:800">${r.patente||'—'}</td>
+    <td>${statusBadge(r.status)}</td>
+    <td>${statusBadge(r.rs)}</td>
+    <td>${statusBadge(r.telemetria)}</td>
+    <td>${statusBadge(r.branding)}</td>
+    <td>${statusBadge(r.ambos)}</td>
+    <td>${statusBadge(r.sep)}</td>
+    <td>${statusBadge(r.lamas)}</td>
+    <td>${statusBadge(r.piso)}</td>
+    <td>${statusBadge(r.tmk)}</td>
+    <td style="color:var(--text-muted);max-width:180px;white-space:normal">${r.obs||'—'}</td>
+  </tr>`).join('');
+
+  const byLocal={};
+  data.forEach(r=>{const loc=r.local||'?';if(!byLocal[loc])byLocal[loc]={act:0,no:0};if(String(r.status).toLowerCase().includes('activo'))byLocal[loc].act++;else byLocal[loc].no++;});
+  const labels=Object.keys(byLocal).sort();
+  destroyChart(chartLocal);
+  chartLocal=new Chart(document.getElementById('mf-chart-local'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Activos',data:labels.map(l=>byLocal[l].act),backgroundColor:'rgba(0,192,127,0.85)',borderRadius:6,borderSkipped:false},
+      {label:'No Operativos',data:labels.map(l=>byLocal[l].no),backgroundColor:'rgba(244,63,94,0.85)',borderRadius:6,borderSkipped:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',padding:18,font:{size:12,weight:'600'}}},valueLabels:{enabled:true}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.05)'},ticks:{stepSize:5}}},barPercentage:.65,categoryPercentage:.75}
+  });
+
+  const byTipo={};
+  data.forEach(r=>{const k=r.tipo||'?';byTipo[k]=(byTipo[k]||0)+1;});
+  destroyChart(chartTipo);
+  chartTipo=new Chart(document.getElementById('mf-chart-tipo'),{
+    type:'doughnut',
+    data:{labels:Object.keys(byTipo),datasets:[{data:Object.values(byTipo),backgroundColor:['#2563eb','#e91e8c','#00c07f','#f59e0b','#8b5cf6'],borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'},valueLabels:{enabled:true}},cutout:'60%'}
+  });
+}
+
+// ──────────────────────────────────────────────────────────
+// CHECK FLE
+// ──────────────────────────────────────────────────────────
+function renderFLE(){
+  const f=document.getElementById('fle-filter').value;
+  const data=FLE_DATA.filter(d=>f==='ALL'||d.estado===f);
+  const listo=data.filter(d=>d.estado==='LISTO').length;
+  document.getElementById('fle-kpis').innerHTML=`
+    <div class="kpi k1"><div class="kpi-label">Total Vehículos FLE</div><div class="kpi-val">${data.length}</div></div>
+    <div class="kpi k2"><div class="kpi-label">Listos</div><div class="kpi-val">${listo}</div></div>
+    <div class="kpi k3"><div class="kpi-label">Pendientes</div><div class="kpi-val">${data.length-listo}</div></div>
+    <div class="kpi k4"><div class="kpi-label">% Cumplimiento</div><div class="kpi-val">${data.length?Math.round(listo/data.length*100):0}%</div></div>`;
+  document.getElementById('fle-cards').innerHTML=data.map(d=>{
+    const ok=d.items.filter(i=>i.listo).length;
+    const tot=d.items.length||1;
+    const p=Math.round(ok/tot*100);
+    return`<div class="fle-card ${d.estado==='LISTO'?'ok':'pend'}">
+      <div class="fle-ppu">${d.ppu}</div>
+      <div class="fle-progress"><div class="fle-progress-fill ${d.estado!=='LISTO'?'red':''}" style="width:${p}%"></div></div>
+      <div style="font-size:11px;font-weight:800;margin-bottom:10px">${d.estado==='LISTO'?'✅ LISTO':'⚠️ PENDIENTE'} &nbsp;<span style="font-weight:400;color:var(--text-muted)">${ok}/${d.items.length} ítems</span></div>
+      <ul class="fle-items">${d.items.map(i=>`<li class="fle-item"><div class="fle-dot ${i.listo?'ok':'pend'}">${i.listo?'✓':'!'}</div>${i.texto}</li>`).join('')}</ul>
+    </div>`;
+  }).join('');
+}
+
+// ──────────────────────────────────────────────────────────
+// CITACIONES HD
+// ──────────────────────────────────────────────────────────
+const SEMANAS=['S18','S19','S20','S21','S22','S23'];
+const SEM_KEYS=['s18','s19','s20','s21','s22','s23'];
+
+function getSemColor(v,colVals){
+  if(v===0)return'background:#f43f5e;color:#fff';
+  const nonZero=colVals.filter(x=>x>0).sort((a,b)=>a-b);
+  if(!nonZero.length)return'background:#f43f5e;color:#fff';
+  const p33=nonZero[Math.floor(nonZero.length*.33)];
+  const p66=nonZero[Math.floor(nonZero.length*.66)];
+  if(v>=p66)return'background:#00c07f;color:#fff';
+  if(v>=p33)return'background:#f59e0b;color:#fff';
+  return'background:#f43f5e;color:#fff';
+}
+function sfBadge(v,style){return`<span style="display:inline-block;min-width:28px;text-align:center;padding:3px 7px;border-radius:8px;font-weight:800;font-size:12px;${style}">${v}</span>`;}
+
+function initCitHD(){
+  fillSel('cit-local',[...new Set(CIT_HD.map(r=>r.local).filter(Boolean))].sort());
+  fillSel('cit-tipo',[...new Set(CIT_HD.map(r=>r.tipo).filter(Boolean))].sort());
+  const wp=document.getElementById('week-pills');
+  wp.innerHTML=`<button class="week-pill active" data-w="ALL" onclick="toggleWeek('ALL',this)">Todas</button>`+
+    SEMANAS.map(s=>`<button class="week-pill" data-w="${s.toLowerCase()}" onclick="toggleWeek('${s.toLowerCase()}',this)">${s}</button>`).join('');
+}
+function toggleWeek(w,btn){
+  if(w==='ALL'){
+    selectedWeeks=new Set(['ALL']);
+    document.querySelectorAll('.week-pill').forEach(p=>{p.classList.remove('active');if(p.dataset.w==='ALL')p.classList.add('active');});
+  }else{
+    selectedWeeks.delete('ALL');
+    document.querySelector('.week-pill[data-w="ALL"]').classList.remove('active');
+    if(selectedWeeks.has(w)){selectedWeeks.delete(w);btn.classList.remove('active');}
+    else{selectedWeeks.add(w);btn.classList.add('active');}
+    if(selectedWeeks.size===0){selectedWeeks.add('ALL');document.querySelector('.week-pill[data-w="ALL"]').classList.add('active');}
+  }
+  renderCitHD();
+}
+function getCitData(){
+  const loc=document.getElementById('cit-local').value;
+  const tipo=document.getElementById('cit-tipo').value;
+  const mes=document.getElementById('cit-mes').value;
+  const q=document.getElementById('cit-search').value.toLowerCase();
+  return CIT_HD.filter(r=>
+    (loc==='ALL'||r.local===loc)&&
+    (tipo==='ALL'||r.tipo===tipo)&&
+    (!q||(r.patente||'').toLowerCase().includes(q)||(r.local||'').toLowerCase().includes(q))
+  ).map(r=>{
+    let total;
+    if(mes==='mayo')total=r.totalMayo;
+    else if(mes==='junio')total=r.totalJunio;
+    else if(selectedWeeks.has('ALL'))total=r.totalGral;
+    else total=SEM_KEYS.filter((_,i)=>selectedWeeks.has(SEMANAS[i].toLowerCase())).reduce((s,k)=>s+r[k],0);
+    return{...r,_total:total};
+  });
+}
+function renderCitHD(){
+  const data=getCitData();
+  const totals=data.map(r=>r._total);
+  const sumTotal=totals.reduce((a,b)=>a+b,0);
+  const avg=data.length?sumTotal/data.length:0;
+  const stdDev=data.length?Math.sqrt(totals.reduce((s,v)=>s+(v-avg)**2,0)/data.length):0;
+  const maxV=Math.max(...totals,0);
+  const conSalidas=totals.filter(v=>v>0).length;
+  const sinSalidas=totals.filter(v=>v===0).length;
+
+  document.getElementById('cit-kpis').innerHTML=`
+    <div class="kpi k1"><div class="kpi-label">Patentes</div><div class="kpi-val">${data.length}</div><div class="kpi-icon">🚗</div></div>
+    <div class="kpi k2"><div class="kpi-label">Total Salidas</div><div class="kpi-val">${sumTotal}</div><div class="kpi-icon">📤</div></div>
+    <div class="kpi k4"><div class="kpi-label">Prom/Vehículo</div><div class="kpi-val">${avg.toFixed(1)}</div><div class="kpi-icon">📊</div></div>
+    <div class="kpi k5"><div class="kpi-label">Con Salidas</div><div class="kpi-val">${conSalidas}</div><div class="kpi-icon">✅</div></div>
+    <div class="kpi k3"><div class="kpi-label">Sin Salidas</div><div class="kpi-val">${sinSalidas}</div><div class="kpi-icon">⚠️</div></div>
+    <div class="kpi k6"><div class="kpi-label">Máx Salidas</div><div class="kpi-val">${maxV}</div><div class="kpi-icon">🏆</div></div>`;
+
+  const byLocal={};
+  data.forEach(r=>{if(!byLocal[r.local])byLocal[r.local]=[];byLocal[r.local].push(r._total);});
+  document.getElementById('eq-grid').innerHTML=Object.entries(byLocal).sort((a,b)=>a[0].localeCompare(b[0])).map(([loc,vals])=>{
+    const sumLoc=vals.reduce((a,b)=>a+b,0);
+    const lAvg=sumLoc/vals.length;
+    const diff=lAvg-avg;
+    const p=avg?Math.abs(diff/avg*100):0;
+    let alertClass='eq-ok',alertText='✅ En rango';
+    if(p>30&&diff>0){alertClass='eq-warn';alertText='⬆ Por encima';}
+    else if(p>30&&diff<0){alertClass='eq-danger';alertText='⬇ Por debajo';}
+    return`<div class="eq-item">
+      <div class="eq-local">${loc}</div>
+      <div class="eq-val">${lAvg.toFixed(1)}</div>
+      <div class="eq-sub">${vals.length} móviles · ${sumLoc} salidas</div>
+      <div class="eq-alert ${alertClass}">${alertText}</div>
+    </div>`;
+  }).join('');
+
+  const COLORS=['#2563eb','#e91e8c','#00c07f','#f59e0b','#8b5cf6','#f43f5e','#06b6d4','#84cc16','#f97316','#ec4899','#14b8a6'];
+  const sorted=[...data].sort((a,b)=>b._total-a._total);
+  const top20=sorted.slice(0,20);
+
+  destroyChart(citBarChart);
+  citBarChart=new Chart(document.getElementById('cit-bar-chart'),{
+    type:'bar',
+    data:{labels:top20.map(r=>r.patente),datasets:[{label:'Salidas',data:top20.map(r=>r._total),backgroundColor:top20.map(r=>{const v=r._total;if(v>=avg+stdDev)return'#00c07f';if(v<=avg-stdDev)return'#f43f5e';return'#2563eb';}),borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},valueLabels:{enabled:true}},scales:{x:{ticks:{font:{size:9},maxRotation:60}},y:{beginAtZero:true}}}
+  });
+
+  const pieLocalLabels=Object.keys(byLocal).sort();
+  destroyChart(citPieLocal);
+  citPieLocal=new Chart(document.getElementById('cit-pie-local'),{
+    type:'doughnut',
+    data:{labels:pieLocalLabels,datasets:[{data:pieLocalLabels.map(l=>byLocal[l].reduce((a,b)=>a+b,0)),backgroundColor:COLORS.slice(0,pieLocalLabels.length),borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10}}},valueLabels:{enabled:true}},cutout:'55%'}
+  });
+
+  const byTipo={};
+  data.forEach(r=>{if(!byTipo[r.tipo])byTipo[r.tipo]={};SEM_KEYS.forEach((k,i)=>{byTipo[r.tipo][i]=(byTipo[r.tipo][i]||0)+(r[k]>0?1:0);});});
+  const tiposKeys=Object.keys(byTipo);
+  destroyChart(citWeekly);
+  citWeekly=new Chart(document.getElementById('cit-weekly-chart'),{
+    type:'line',
+    data:{labels:SEMANAS,datasets:tiposKeys.map((t,i)=>({label:t,data:SEM_KEYS.map((_,wi)=>byTipo[t][wi]||0),borderColor:COLORS[i%COLORS.length],backgroundColor:COLORS[i%COLORS.length]+'33',fill:false,tension:.3,borderWidth:2,pointRadius:4}))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'},valueLabels:{enabled:true}},scales:{y:{beginAtZero:true}}}
+  });
+
+  const byTipoTotal={};
+  data.forEach(r=>{byTipoTotal[r.tipo]=(byTipoTotal[r.tipo]||0)+r._total;});
+  destroyChart(citPieTipo);
+  citPieTipo=new Chart(document.getElementById('cit-pie-tipo'),{
+    type:'doughnut',
+    data:{labels:Object.keys(byTipoTotal),datasets:[{data:Object.values(byTipoTotal),backgroundColor:COLORS.slice(0,Object.keys(byTipoTotal).length),borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'},valueLabels:{enabled:true}},cutout:'55%'}
+  });
+
+  const top10=sorted.slice(0,10);
+  const bot10=[...data].sort((a,b)=>a._total-b._total).slice(0,10);
+  function rankItem(r,cls,i){
+    const bar=maxV>0?Math.round(r._total/maxV*100):0;
+    return`<li class="rank-item ${cls}">
+      <div class="rank-num ${cls}">${i+1}</div>
+      <div class="rank-info"><div class="rank-pat">${r.patente}</div><div class="rank-local">${r.local} · ${r.tipo}</div></div>
+      <div class="rank-bar-wrap"><div class="rank-bar-bg"><div class="rank-bar-fill rank-fill-${cls}" style="width:${bar}%"></div></div></div>
+      <div class="rank-val">${r._total}</div>
+    </li>`;
+  }
+  document.getElementById('rank-top').innerHTML=top10.map((r,i)=>rankItem(r,'top',i)).join('');
+  document.getElementById('rank-bot').innerHTML=bot10.map((r,i)=>rankItem(r,'bot',i)).join('');
+
+  document.getElementById('cit-count-label').textContent=`(${data.length} vehículos)`;
+  const colColors={};
+  SEM_KEYS.forEach(k=>{const colVals=sorted.map(r=>r[k]);colColors[k]=sorted.map(r=>getSemColor(r[k],colVals));});
+  document.getElementById('cit-tbody').innerHTML=sorted.map((r,i)=>{
+    const v=r._total;
+    let alertHtml='';
+    if(v>=avg+stdDev)alertHtml=`<span class="alert-badge alert-ok">✅ Sobre rango</span>`;
+    else if(v<=avg-stdDev)alertHtml=`<span class="alert-badge alert-danger">🔴 Bajo rango</span>`;
+    else alertHtml=`<span class="alert-badge" style="background:#dbeafe;color:#1e40af">✓ En rango</span>`;
+    const semCells=SEM_KEYS.map(k=>`<td style="text-align:center">${sfBadge(r[k],colColors[k][i])}</td>`).join('');
+    return`<tr>
+      <td style="font-weight:700;color:var(--text-muted)">${i+1}</td>
+      <td>${r.local}</td>
+      <td><span class="badge badge-blue">${r.tipo}</span></td>
+      <td style="font-weight:800">${r.patente}</td>
+      ${semCells}
+      <td style="font-weight:800">${r.totalMayo}</td>
+      <td style="font-weight:800">${r.totalJunio}</td>
+      <td style="font-weight:900;color:var(--accent)">${r.totalGral}</td>
+      <td>${alertHtml}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ──────────────────────────────────────────────────────────
+// DATOS FALLBACK (embebidos – se usan si el Sheet no está disponible)
+// ──────────────────────────────────────────────────────────
+const _FB={
+FLOTA_ACTUAL:[
+  {tipo:'FH',local:'L58',patente:'SYSS70',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:'el tiene bandeja, no palet'},
+  {tipo:'FH',local:'L58',patente:'PPWY63',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:'ok'},
+  {tipo:'FH',local:'L58',patente:'SRYH57',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:'ok'},
+  {tipo:'FH',local:'L58',patente:'STWR86',status:'Activo',rs:'Si cuenta con RS',telemetria:'Pendiente Instalacion',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:'ok'},
+  {tipo:'FH',local:'L58',patente:'TPXY11',status:'Activo',rs:'Si cuenta con RS',telemetria:'Pendiente Instalacion',branding:'No',ambos:'No',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:'Ojo con tmk'},
+  {tipo:'FH',local:'L58',patente:'VHSW61',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L58',patente:'TVZC13',status:'No operativo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:'el tiene bandeja, no palet'},
+  {tipo:'FH',local:'L58',patente:'DLCB16',status:'No operativo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L58',patente:'SVLY73',status:'Activo',rs:'Pendiente RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:'ojo lamas'},
+  {tipo:'FH',local:'L58',patente:'TSTP28',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'No',piso:'si',tmk:'si',obs:'le falta 1 lama'},
+  {tipo:'FH',local:'L94',patente:'TRYL78',status:'Activo',rs:'Pendiente RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L94',patente:'VJPH80',status:'Activo',rs:'Pendiente RS',telemetria:'Pendiente Instalacion',branding:'No',ambos:'No',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L94',patente:'VJWK44',status:'Activo',rs:'Pendiente RS',telemetria:'Pendiente Instalacion',branding:'No',ambos:'No',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L94',patente:'VGWW22',status:'Activo',rs:'Pendiente RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L94',patente:'LRXY26',status:'No operativo',rs:'Si cuenta con RS',telemetria:'Pendiente Instalacion',branding:'',ambos:'',sep:'',lamas:'',piso:'',tmk:'',obs:''},
+  {tipo:'FH',local:'L94',patente:'PGHD38',status:'No operativo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'',ambos:'',sep:'',lamas:'',piso:'',tmk:'',obs:''},
+  {tipo:'FH',local:'L94',patente:'VJRT63',status:'Activo',rs:'Pendiente RS',telemetria:'Pendiente Instalacion',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L98',patente:'KSXP45',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L98',patente:'RTTR83',status:'Activo',rs:'Si cuenta con RS',telemetria:'Pendiente Instalacion',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L98',patente:'SDYY74',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L98',patente:'TRPP43',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L98',patente:'VKJF15',status:'Activo',rs:'Si cuenta con RS',telemetria:'Pendiente Instalacion',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:'saca las lamas'},
+  {tipo:'FH',local:'L98',patente:'RDLW17',status:'Activo',rs:'Pendiente RS',telemetria:'Pendiente Instalacion',branding:'No',ambos:'No',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:'Lunes se le instala branding'},
+  {tipo:'FH',local:'L98',patente:'PCFZ21',status:'Activo',rs:'Pendiente RS',telemetria:'Pendiente Instalacion',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L98',patente:'VDSH17',status:'Activo',rs:'Pendiente RS',telemetria:'Pendiente Instalacion',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L98',patente:'PRFC70',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L98',patente:'RBYF40',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L98',patente:'RPWK21',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L98',patente:'SKXW43',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L98',patente:'TJDR58',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L98',patente:'LSVH23',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L98',patente:'PCJZ43',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'No',ambos:'Si',sep:'No',lamas:'Si',piso:'si',tmk:'si',obs:'revisar separador'},
+  {tipo:'FH',local:'L99',patente:'LHZW29',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'Si',tmk:'Si',obs:''},
+  {tipo:'FH',local:'L99',patente:'VJWK40',status:'Activo',rs:'Pendiente RS',telemetria:'Pendiente Instalacion',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'Si',tmk:'Si',obs:''},
+  {tipo:'FH',local:'L99',patente:'VJWK39',status:'Activo',rs:'Pendiente RS',telemetria:'Pendiente Instalacion',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'Si',tmk:'Si',obs:''},
+  {tipo:'FH',local:'L99',patente:'JTYF43',status:'Activo',rs:'Pendiente RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'Si',tmk:'Si',obs:''},
+  {tipo:'FH',local:'L99',patente:'LLXD43',status:'Activo',rs:'Pendiente RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'Si',tmk:'Si',obs:''},
+  {tipo:'FH',local:'L99',patente:'VJPH72',status:'Activo',rs:'Pendiente RS',telemetria:'Pendiente Instalacion',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'Si',tmk:'Si',obs:''},
+  {tipo:'FH',local:'L99',patente:'VJPH79',status:'No operativo',rs:'Pendiente RS',telemetria:'Pendiente Instalacion',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'Si',tmk:'Si',obs:''},
+  {tipo:'FH',local:'L99',patente:'LCWT89',status:'Activo',rs:'Pendiente RS',telemetria:'Pendiente Instalacion',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:'revisar'},
+  {tipo:'FH',local:'L120',patente:'KKJZ64',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L120',patente:'HZRX80',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'No',piso:'si',tmk:'si',obs:'limpiar'},
+  {tipo:'FH',local:'L120',patente:'KCHJ51',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L120',patente:'KYSJ80',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L120',patente:'TSCT51',status:'Activo',rs:'Pendiente RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'No',piso:'si',tmk:'si',obs:'limpiar, si no cambiar'},
+  {tipo:'FH',local:'L120',patente:'LHVR22',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L120',patente:'RYJR47',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L120',patente:'TZCH26',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:'sacar sticker lamas'},
+  {tipo:'FH',local:'L120',patente:'KZZY17',status:'No operativo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'no',obs:'revisando el frio'},
+  {tipo:'FH',local:'L120',patente:'PGJL89',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L120',patente:'RXTL44',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'No',piso:'si',tmk:'si',obs:'lamas sucias, cambio'},
+  {tipo:'FH',local:'L120',patente:'TRYL82',status:'Activo',rs:'Pendiente RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'No',piso:'si',tmk:'si',obs:'lamas sucias, cambio'},
+  {tipo:'FH',local:'L121',patente:'VLHB59',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L121',patente:'VDZC94',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L121',patente:'PTGD93',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L121',patente:'CJJY36',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'no',obs:'problemas con frio'},
+  {tipo:'FH',local:'L121',patente:'TYWH80',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'Si',tmk:'Si',obs:''},
+  {tipo:'FH',local:'L121',patente:'RCVG47',status:'Activo',rs:'Pendiente RS',telemetria:'Pendiente Instalacion',branding:'No',ambos:'No',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:'ver instalacion branding'},
+  {tipo:'FH',local:'L121',patente:'VGTD93',status:'Activo',rs:'Pendiente RS',telemetria:'Pendiente Instalacion',branding:'No',ambos:'No',sep:'Si',lamas:'Si',piso:'Si',tmk:'Si',obs:'ver instalacion branding'},
+  {tipo:'FH',local:'L121',patente:'SBTV68',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'Si',tmk:'Si',obs:''},
+  {tipo:'FH',local:'L121',patente:'VSGW69',status:'No operativo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'Si',tmk:'Si',obs:''},
+  {tipo:'FH',local:'L121',patente:'PSLP82',status:'No operativo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'Si',tmk:'Si',obs:''},
+  {tipo:'FH',local:'L608',patente:'TWRJ22',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'No',piso:'Si',tmk:'Si',obs:'ver lamas'},
+  {tipo:'FH',local:'L608',patente:'HZPB58',status:'No operativo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'',ambos:'',sep:'',lamas:'',piso:'',tmk:'',obs:''},
+  {tipo:'FH',local:'L608',patente:'VKDZ87',status:'No operativo',rs:'Pendiente RS',telemetria:'Instalacion Lista',branding:'',ambos:'',sep:'',lamas:'',piso:'',tmk:'',obs:''},
+  {tipo:'FH',local:'L618',patente:'JSTD66',status:'Activo',rs:'Si cuenta con RS',telemetria:'Pendiente Instalacion',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:'Revisar, trabajan con otra PPU'},
+  {tipo:'FH',local:'L618',patente:'KXDX77',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:'tienen separador propio'},
+  {tipo:'FH',local:'L618',patente:'FZKB60',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:'tienen separador propio'},
+  {tipo:'FH',local:'L618',patente:'VJWK43',status:'Activo',rs:'Pendiente RS',telemetria:'Pendiente Instalacion',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:''},
+  {tipo:'FH',local:'L618',patente:'KZZY13',status:'Activo',rs:'Si cuenta con RS',telemetria:'Pendiente Instalacion',branding:'No',ambos:'No',sep:'Si',lamas:'Si',piso:'si',tmk:'si',obs:'tiene branding pero requiere cambio'},
+  {tipo:'FH',local:'L618',patente:'VJPH71',status:'Activo',rs:'Pendiente RS',telemetria:'Pendiente Instalacion',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'Si',tmk:'Si',obs:''},
+  {tipo:'FH',local:'L618',patente:'VJPJ18',status:'Activo',rs:'Pendiente RS',telemetria:'Pendiente Instalacion',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'Si',tmk:'Si',obs:'inactivo por choque'},
+  {tipo:'FH',local:'L618',patente:'VKFD45',status:'Activo',rs:'Si cuenta con RS',telemetria:'Pendiente Instalacion',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'Si',tmk:'Si',obs:''},
+  {tipo:'FH',local:'L657',patente:'JSSK36',status:'Activo',rs:'Si cuenta con RS',telemetria:'Instalacion Lista',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'Si',tmk:'Si',obs:''},
+  {tipo:'FH',local:'L657',patente:'KGVB33',status:'Activo',rs:'Si cuenta con RS',telemetria:'Pendiente Instalacion',branding:'Si',ambos:'Si',sep:'Si',lamas:'Si',piso:'Si',tmk:'Si',obs:''},
+  {tipo:'FLD',local:'L45',patente:'JCRZ41',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L45',patente:'PPXL56',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L45',patente:'PZLX49',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L45',patente:'HDJW94',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L45',patente:'RRSX45',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L45',patente:'HVDK36',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FH',local:'L45',patente:'PSCW71',status:'Activo',rs:'Pendiente RS',telemetria:'Pendiente Instalacion',branding:'No',ambos:'No',sep:'',lamas:'',piso:'',tmk:'si',obs:''},
+  {tipo:'FH',local:'L45',patente:'LFTL60',status:'Activo',rs:'Pendiente RS',telemetria:'Pendiente Instalacion',branding:'No',ambos:'No',sep:'',lamas:'',piso:'',tmk:'si',obs:''},
+  {tipo:'FLD',local:'L45',patente:'KCWL95',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L45',patente:'KBGZ36',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L45',patente:'RRLF86',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L45',patente:'LJTV50',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L45',patente:'JRLS46',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L45',patente:'RLDP39',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L58',patente:'SCWZ56',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L58',patente:'JLPZ25',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L58',patente:'LZGV53',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L58',patente:'RDKS16',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L58',patente:'GLBZ25',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L58',patente:'JVHZ54',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L58',patente:'KBGZ82',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L58',patente:'JTRH38',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L58',patente:'LYVP54',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L58',patente:'KTGT79',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L58',patente:'GFYS25',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L95',patente:'SSRF40',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L95',patente:'KZPY29',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L95',patente:'RTXS54',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L95',patente:'SJCY30',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L95',patente:'VDVB53',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L95',patente:'GYKP40',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L95',patente:'PDZS86',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L95',patente:'JWDH77',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L95',patente:'TKJC40',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L95',patente:'TPVK74',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L95',patente:'RYTC41',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L98',patente:'PRLG54',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L98',patente:'KXKJ82',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L98',patente:'RCLZ94',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L98',patente:'JWXL72',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L98',patente:'LTXC53',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L98',patente:'KTXZ53',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLD',local:'L98',patente:'LZJF49',status:'Activo',rs:'No aplica',telemetria:'No aplica',branding:'',ambos:'',sep:'No aplica',lamas:'No aplica',piso:'No aplica',tmk:'No aplica',obs:''},
+  {tipo:'FLE',local:'L45',patente:'TTHR19',status:'Activo',rs:'No aplica',telemetria:'Revisar',branding:'',ambos:'',sep:'',lamas:'',piso:'',tmk:'',obs:''},
+  {tipo:'FLE',local:'L45',patente:'TTHR12',status:'Activo',rs:'No aplica',telemetria:'Revisar',branding:'',ambos:'',sep:'',lamas:'',piso:'',tmk:'',obs:''},
+  {tipo:'FLE',local:'L45',patente:'TTHP95',status:'Activo',rs:'No aplica',telemetria:'Revisar',branding:'',ambos:'',sep:'',lamas:'',piso:'',tmk:'',obs:''},
+  {tipo:'FLE',local:'L45',patente:'TTHP92',status:'Activo',rs:'No aplica',telemetria:'Revisar',branding:'',ambos:'',sep:'',lamas:'',piso:'',tmk:'',obs:''},
+  {tipo:'FLE',local:'L45',patente:'TTHP82',status:'Activo',rs:'No aplica',telemetria:'Revisar',branding:'',ambos:'',sep:'',lamas:'',piso:'',tmk:'',obs:''},
+  {tipo:'FLE',local:'L45',patente:'TTHP93',status:'Activo',rs:'No aplica',telemetria:'Revisar',branding:'',ambos:'',sep:'',lamas:'',piso:'',tmk:'',obs:''}
+],
+FLE_DATA:[
+  {ppu:'TTHR12',estado:'PENDIENTE',items:[{texto:'TMK operativo',listo:false},{texto:'Camara operativa',listo:true},{texto:'Focos operativos',listo:true},{texto:'Grabado de patentes',listo:true},{texto:'Neumatico de respuesto',listo:true},{texto:'Gata',listo:true},{texto:'Limpieza',listo:true},{texto:'Separador',listo:true}]},
+  {ppu:'TTHR19',estado:'PENDIENTE',items:[{texto:'TMK operativo',listo:false},{texto:'Camara operativa',listo:true},{texto:'Focos operativos',listo:true},{texto:'Grabado de patentes',listo:true},{texto:'Neumatico de respuesto',listo:true},{texto:'Gata',listo:true},{texto:'Limpieza',listo:true},{texto:'Separador',listo:true}]},
+  {ppu:'TTHP82',estado:'PENDIENTE',items:[{texto:'TMK operativo',listo:true},{texto:'Camara operativa',listo:true},{texto:'Focos operativos',listo:true},{texto:'Grabado de patentes',listo:true},{texto:'Neumatico de respuesto',listo:true},{texto:'Gata',listo:true},{texto:'Limpieza',listo:true},{texto:'Separador',listo:true}]},
+  {ppu:'TTHP92',estado:'PENDIENTE',items:[{texto:'TMK operativo',listo:true},{texto:'Camara operativa',listo:true},{texto:'Focos operativos',listo:true},{texto:'Grabado de patentes',listo:true},{texto:'Neumatico de respuesto',listo:true},{texto:'Gata',listo:true},{texto:'Limpieza',listo:true},{texto:'Separador',listo:true}]},
+  {ppu:'TTHP93',estado:'PENDIENTE',items:[{texto:'TMK operativo',listo:true},{texto:'Camara operativa',listo:true},{texto:'Focos operativos',listo:true},{texto:'Grabado de patentes',listo:true},{texto:'Neumatico de respuesto',listo:true},{texto:'Gata',listo:true},{texto:'Limpieza',listo:true},{texto:'Separador',listo:true}]},
+  {ppu:'TTHP95',estado:'PENDIENTE',items:[{texto:'TMK operativo',listo:true},{texto:'Camara operativa',listo:true},{texto:'Focos operativos',listo:true},{texto:'Grabado de patentes',listo:true},{texto:'Neumatico de respuesto',listo:true},{texto:'Gata',listo:true},{texto:'Limpieza',listo:true},{texto:'Separador',listo:true}]}
+],
+CIT_HD:[
+  {tipo:'FH',local:'L45',patente:'PSCW71',s18:0,s19:3,s20:5,s21:4,s22:4,s23:5,totalMayo:16,totalJunio:5,totalGral:21},
+  {tipo:'FH',local:'L45',patente:'GXDS74',s18:0,s19:0,s20:0,s21:0,s22:1,s23:0,totalMayo:1,totalJunio:0,totalGral:1},
+  {tipo:'FH',local:'L58',patente:'STWR86',s18:2,s19:3,s20:2,s21:3,s22:4,s23:6,totalMayo:14,totalJunio:6,totalGral:20},
+  {tipo:'FH',local:'L58',patente:'SYSS70',s18:1,s19:3,s20:5,s21:3,s22:3,s23:5,totalMayo:15,totalJunio:5,totalGral:20},
+  {tipo:'FH',local:'L58',patente:'PPWY63',s18:1,s19:3,s20:3,s21:4,s22:3,s23:5,totalMayo:14,totalJunio:5,totalGral:19},
+  {tipo:'FH',local:'L58',patente:'SRYH57',s18:0,s19:3,s20:2,s21:4,s22:3,s23:5,totalMayo:12,totalJunio:5,totalGral:17},
+  {tipo:'FH',local:'L58',patente:'TPXY11',s18:1,s19:1,s20:1,s21:3,s22:1,s23:6,totalMayo:7,totalJunio:6,totalGral:13},
+  {tipo:'FH',local:'L58',patente:'TVZC13',s18:1,s19:3,s20:1,s21:0,s22:3,s23:4,totalMayo:8,totalJunio:4,totalGral:12},
+  {tipo:'FH',local:'L58',patente:'VHSW61',s18:0,s19:1,s20:2,s21:3,s22:3,s23:3,totalMayo:9,totalJunio:3,totalGral:12},
+  {tipo:'FH',local:'L58',patente:'DLCB16',s18:1,s19:0,s20:0,s21:1,s22:0,s23:1,totalMayo:2,totalJunio:1,totalGral:3},
+  {tipo:'FH',local:'L94',patente:'VJWK44',s18:2,s19:6,s20:4,s21:2,s22:5,s23:6,totalMayo:19,totalJunio:6,totalGral:25},
+  {tipo:'FH',local:'L94',patente:'TRYL78',s18:2,s19:6,s20:3,s21:3,s22:4,s23:5,totalMayo:18,totalJunio:5,totalGral:23},
+  {tipo:'FH',local:'L94',patente:'VGWW22',s18:2,s19:4,s20:2,s21:4,s22:4,s23:6,totalMayo:16,totalJunio:6,totalGral:22},
+  {tipo:'FH',local:'L94',patente:'VJPH80',s18:0,s19:4,s20:6,s21:4,s22:2,s23:0,totalMayo:16,totalJunio:0,totalGral:16},
+  {tipo:'FH',local:'L94',patente:'VJRT63',s18:0,s19:0,s20:0,s21:1,s22:5,s23:6,totalMayo:6,totalJunio:6,totalGral:12},
+  {tipo:'FH',local:'L94',patente:'LRXY26',s18:0,s19:3,s20:2,s21:3,s22:0,s23:0,totalMayo:8,totalJunio:0,totalGral:8},
+  {tipo:'FH',local:'L98',patente:'KSXP45',s18:2,s19:4,s20:4,s21:2,s22:4,s23:6,totalMayo:16,totalJunio:6,totalGral:22},
+  {tipo:'FH',local:'L98',patente:'RTTR83',s18:2,s19:4,s20:3,s21:3,s22:3,s23:6,totalMayo:15,totalJunio:6,totalGral:21},
+  {tipo:'FH',local:'L98',patente:'VKJF15',s18:2,s19:5,s20:3,s21:2,s22:3,s23:6,totalMayo:15,totalJunio:6,totalGral:21},
+  {tipo:'FH',local:'L98',patente:'SDYY74',s18:2,s19:3,s20:4,s21:2,s22:3,s23:6,totalMayo:14,totalJunio:6,totalGral:20},
+  {tipo:'FH',local:'L98',patente:'RPWK21',s18:1,s19:5,s20:1,s21:3,s22:3,s23:6,totalMayo:13,totalJunio:6,totalGral:19},
+  {tipo:'FH',local:'L98',patente:'PRFC70',s18:1,s19:4,s20:3,s21:2,s22:2,s23:5,totalMayo:12,totalJunio:5,totalGral:17},
+  {tipo:'FH',local:'L98',patente:'TRPP43',s18:2,s19:4,s20:3,s21:2,s22:3,s23:3,totalMayo:14,totalJunio:3,totalGral:17},
+  {tipo:'FH',local:'L98',patente:'RBYF40',s18:2,s19:3,s20:3,s21:2,s22:2,s23:4,totalMayo:12,totalJunio:4,totalGral:16},
+  {tipo:'FH',local:'L98',patente:'SKXW43',s18:1,s19:4,s20:3,s21:2,s22:2,s23:4,totalMayo:12,totalJunio:4,totalGral:16},
+  {tipo:'FH',local:'L98',patente:'LSVH23',s18:1,s19:2,s20:2,s21:3,s22:2,s23:5,totalMayo:10,totalJunio:5,totalGral:15},
+  {tipo:'FH',local:'L98',patente:'TJDR58',s18:0,s19:4,s20:3,s21:3,s22:1,s23:2,totalMayo:11,totalJunio:2,totalGral:13},
+  {tipo:'FH',local:'L98',patente:'PCFZ21',s18:0,s19:0,s20:0,s21:3,s22:2,s23:5,totalMayo:5,totalJunio:5,totalGral:10},
+  {tipo:'FH',local:'L98',patente:'PCJZ43',s18:2,s19:1,s20:0,s21:0,s22:0,s23:4,totalMayo:3,totalJunio:4,totalGral:7},
+  {tipo:'FH',local:'L98',patente:'VDSH17',s18:0,s19:0,s20:0,s21:0,s22:2,s23:0,totalMayo:2,totalJunio:0,totalGral:2},
+  {tipo:'FH',local:'L99',patente:'LHZW29',s18:2,s19:7,s20:6,s21:4,s22:5,s23:7,totalMayo:24,totalJunio:7,totalGral:31},
+  {tipo:'FH',local:'L99',patente:'JTYF43',s18:0,s19:5,s20:5,s21:6,s22:6,s23:6,totalMayo:22,totalJunio:6,totalGral:28},
+  {tipo:'FH',local:'L99',patente:'VJWK40',s18:2,s19:7,s20:2,s21:5,s22:4,s23:7,totalMayo:20,totalJunio:7,totalGral:27},
+  {tipo:'FH',local:'L99',patente:'VJWK39',s18:1,s19:7,s20:4,s21:3,s22:4,s23:7,totalMayo:19,totalJunio:7,totalGral:26},
+  {tipo:'FH',local:'L99',patente:'LLXD43',s18:2,s19:2,s20:4,s21:3,s22:5,s23:5,totalMayo:16,totalJunio:5,totalGral:21},
+  {tipo:'FH',local:'L99',patente:'LCWT89',s18:0,s19:0,s20:0,s21:0,s22:1,s23:6,totalMayo:1,totalJunio:6,totalGral:7},
+  {tipo:'FH',local:'L120',patente:'KKJZ64',s18:2,s19:5,s20:3,s21:2,s22:4,s23:7,totalMayo:16,totalJunio:7,totalGral:23},
+  {tipo:'FH',local:'L120',patente:'TSCT51',s18:1,s19:5,s20:2,s21:3,s22:5,s23:6,totalMayo:16,totalJunio:6,totalGral:22},
+  {tipo:'FH',local:'L120',patente:'KYSJ80',s18:1,s19:4,s20:3,s21:4,s22:3,s23:6,totalMayo:15,totalJunio:6,totalGral:21},
+  {tipo:'FH',local:'L120',patente:'HZRX80',s18:1,s19:5,s20:3,s21:2,s22:3,s23:6,totalMayo:14,totalJunio:6,totalGral:20},
+  {tipo:'FH',local:'L120',patente:'KCHJ51',s18:1,s19:4,s20:3,s21:3,s22:3,s23:6,totalMayo:14,totalJunio:6,totalGral:20},
+  {tipo:'FH',local:'L120',patente:'PGJL89',s18:1,s19:3,s20:3,s21:2,s22:5,s23:6,totalMayo:14,totalJunio:6,totalGral:20},
+  {tipo:'FH',local:'L120',patente:'RYJR47',s18:1,s19:3,s20:3,s21:3,s22:3,s23:7,totalMayo:13,totalJunio:7,totalGral:20},
+  {tipo:'FH',local:'L120',patente:'LHVR22',s18:2,s19:3,s20:2,s21:3,s22:4,s23:5,totalMayo:14,totalJunio:5,totalGral:19},
+  {tipo:'FH',local:'L120',patente:'RXTL44',s18:2,s19:3,s20:2,s21:3,s22:3,s23:6,totalMayo:13,totalJunio:6,totalGral:19},
+  {tipo:'FH',local:'L120',patente:'TZCH26',s18:1,s19:4,s20:3,s21:2,s22:3,s23:6,totalMayo:13,totalJunio:6,totalGral:19},
+  {tipo:'FH',local:'L120',patente:'KZZY17',s18:1,s19:3,s20:3,s21:3,s22:2,s23:6,totalMayo:12,totalJunio:6,totalGral:18},
+  {tipo:'FH',local:'L120',patente:'TRYL82',s18:0,s19:1,s20:1,s21:1,s22:2,s23:6,totalMayo:5,totalJunio:6,totalGral:11},
+  {tipo:'FH',local:'L121',patente:'VDZC94',s18:1,s19:3,s20:6,s21:5,s22:5,s23:6,totalMayo:20,totalJunio:6,totalGral:26},
+  {tipo:'FH',local:'L121',patente:'VLHB59',s18:1,s19:6,s20:4,s21:4,s22:5,s23:6,totalMayo:20,totalJunio:6,totalGral:26},
+  {tipo:'FH',local:'L121',patente:'CJJY36',s18:1,s19:5,s20:3,s21:4,s22:4,s23:6,totalMayo:17,totalJunio:6,totalGral:23},
+  {tipo:'FH',local:'L121',patente:'PTGD93',s18:2,s19:5,s20:3,s21:4,s22:1,s23:6,totalMayo:15,totalJunio:6,totalGral:21},
+  {tipo:'FH',local:'L121',patente:'TYWH80',s18:1,s19:3,s20:2,s21:3,s22:4,s23:4,totalMayo:13,totalJunio:4,totalGral:17},
+  {tipo:'FH',local:'L121',patente:'SBTV68',s18:1,s19:2,s20:3,s21:2,s22:3,s23:3,totalMayo:11,totalJunio:3,totalGral:14},
+  {tipo:'FH',local:'L121',patente:'RCVG47',s18:0,s19:0,s20:3,s21:1,s22:4,s23:4,totalMayo:8,totalJunio:4,totalGral:12},
+  {tipo:'FH',local:'L121',patente:'PSLP82',s18:1,s19:3,s20:0,s21:0,s22:0,s23:5,totalMayo:4,totalJunio:5,totalGral:9},
+  {tipo:'FH',local:'L121',patente:'VSGW69',s18:0,s19:6,s20:1,s21:0,s22:0,s23:0,totalMayo:7,totalJunio:0,totalGral:7},
+  {tipo:'FH',local:'L121',patente:'VGTD93',s18:0,s19:0,s20:0,s21:0,s22:1,s23:5,totalMayo:1,totalJunio:5,totalGral:6},
+  {tipo:'FH',local:'L608',patente:'TWRJ22',s18:1,s19:4,s20:2,s21:3,s22:7,s23:7,totalMayo:17,totalJunio:7,totalGral:24},
+  {tipo:'FH',local:'L608',patente:'VKDZ87',s18:0,s19:2,s20:2,s21:1,s22:0,s23:0,totalMayo:5,totalJunio:0,totalGral:5},
+  {tipo:'FH',local:'L618',patente:'JSTD66',s18:2,s19:6,s20:5,s21:4,s22:5,s23:6,totalMayo:22,totalJunio:6,totalGral:28},
+  {tipo:'FH',local:'L618',patente:'FZKB60',s18:2,s19:4,s20:4,s21:3,s22:5,s23:7,totalMayo:18,totalJunio:7,totalGral:25},
+  {tipo:'FH',local:'L618',patente:'KXDX77',s18:2,s19:6,s20:3,s21:4,s22:3,s23:6,totalMayo:18,totalJunio:6,totalGral:24},
+  {tipo:'FH',local:'L618',patente:'VJWK43',s18:2,s19:3,s20:3,s21:2,s22:3,s23:3,totalMayo:13,totalJunio:3,totalGral:16},
+  {tipo:'FH',local:'L618',patente:'KZZY13',s18:1,s19:3,s20:3,s21:0,s22:2,s23:5,totalMayo:9,totalJunio:5,totalGral:14},
+  {tipo:'FH',local:'L618',patente:'VKFD45',s18:0,s19:5,s20:0,s21:0,s22:3,s23:5,totalMayo:8,totalJunio:5,totalGral:13},
+  {tipo:'FH',local:'L618',patente:'VJPH71',s18:0,s19:0,s20:0,s21:0,s22:2,s23:7,totalMayo:2,totalJunio:7,totalGral:9},
+  {tipo:'FH',local:'L657',patente:'JSSK36',s18:2,s19:3,s20:3,s21:1,s22:3,s23:5,totalMayo:12,totalJunio:5,totalGral:17},
+  {tipo:'FH',local:'L657',patente:'KGVB33',s18:0,s19:3,s20:2,s21:2,s22:2,s23:6,totalMayo:9,totalJunio:6,totalGral:15},
+  {tipo:'FLD',local:'L45',patente:'JCRZ41',s18:1,s19:6,s20:6,s21:3,s22:4,s23:7,totalMayo:20,totalJunio:7,totalGral:27},
+  {tipo:'FLD',local:'L45',patente:'PZLX49',s18:1,s19:6,s20:5,s21:4,s22:5,s23:6,totalMayo:21,totalJunio:6,totalGral:27},
+  {tipo:'FLD',local:'L45',patente:'PPXL56',s18:2,s19:6,s20:3,s21:4,s22:5,s23:6,totalMayo:20,totalJunio:6,totalGral:26},
+  {tipo:'FLD',local:'L45',patente:'RRSX45',s18:2,s19:6,s20:2,s21:5,s22:5,s23:6,totalMayo:20,totalJunio:6,totalGral:26},
+  {tipo:'FLD',local:'L45',patente:'HDJW94',s18:2,s19:5,s20:4,s21:4,s22:4,s23:4,totalMayo:19,totalJunio:4,totalGral:23},
+  {tipo:'FLD',local:'L45',patente:'RRLF86',s18:0,s19:5,s20:3,s21:3,s22:5,s23:7,totalMayo:16,totalJunio:7,totalGral:23},
+  {tipo:'FLD',local:'L45',patente:'LJTV50',s18:0,s19:0,s20:5,s21:4,s22:6,s23:7,totalMayo:15,totalJunio:7,totalGral:22},
+  {tipo:'FLD',local:'L45',patente:'HVDK36',s18:1,s19:4,s20:2,s21:3,s22:5,s23:6,totalMayo:15,totalJunio:6,totalGral:21},
+  {tipo:'FLD',local:'L45',patente:'KBGZ36',s18:2,s19:1,s20:6,s21:2,s22:4,s23:5,totalMayo:15,totalJunio:5,totalGral:20},
+  {tipo:'FLD',local:'L45',patente:'KCWL95',s18:1,s19:4,s20:0,s21:4,s22:5,s23:6,totalMayo:14,totalJunio:6,totalGral:20},
+  {tipo:'FLD',local:'L45',patente:'RLDP39',s18:0,s19:0,s20:0,s21:0,s22:3,s23:0,totalMayo:3,totalJunio:0,totalGral:3},
+  {tipo:'FLD',local:'L45',patente:'JRLS46',s18:0,s19:0,s20:0,s21:0,s22:2,s23:0,totalMayo:2,totalJunio:0,totalGral:2},
+  {tipo:'FLD',local:'L45',patente:'JXCV71',s18:0,s19:0,s20:0,s21:0,s22:2,s23:0,totalMayo:2,totalJunio:0,totalGral:2},
+  {tipo:'FLD',local:'L58',patente:'SCWZ56',s18:1,s19:5,s20:5,s21:5,s22:5,s23:7,totalMayo:21,totalJunio:7,totalGral:28},
+  {tipo:'FLD',local:'L58',patente:'LZGV53',s18:2,s19:4,s20:4,s21:3,s22:5,s23:7,totalMayo:18,totalJunio:7,totalGral:25},
+  {tipo:'FLD',local:'L58',patente:'RDKS16',s18:0,s19:5,s20:4,s21:4,s22:4,s23:7,totalMayo:17,totalJunio:7,totalGral:24},
+  {tipo:'FLD',local:'L58',patente:'JLPZ25',s18:0,s19:5,s20:4,s21:5,s22:4,s23:4,totalMayo:18,totalJunio:4,totalGral:22},
+  {tipo:'FLD',local:'L58',patente:'GLBZ25',s18:1,s19:3,s20:4,s21:3,s22:4,s23:6,totalMayo:15,totalJunio:6,totalGral:21},
+  {tipo:'FLD',local:'L58',patente:'JVHZ54',s18:1,s19:3,s20:3,s21:3,s22:3,s23:7,totalMayo:13,totalJunio:7,totalGral:20},
+  {tipo:'FLD',local:'L58',patente:'JKDP45',s18:1,s19:3,s20:3,s21:3,s22:5,s23:2,totalMayo:15,totalJunio:2,totalGral:17},
+  {tipo:'FLD',local:'L58',patente:'KBGZ82',s18:2,s19:3,s20:2,s21:2,s22:3,s23:3,totalMayo:12,totalJunio:3,totalGral:15},
+  {tipo:'FLD',local:'L58',patente:'JTRH38',s18:0,s19:0,s20:3,s21:2,s22:3,s23:6,totalMayo:8,totalJunio:6,totalGral:14},
+  {tipo:'FLD',local:'L58',patente:'GFYS25',s18:0,s19:0,s20:0,s21:0,s22:2,s23:5,totalMayo:2,totalJunio:5,totalGral:7},
+  {tipo:'FLD',local:'L58',patente:'LYVP54',s18:0,s19:0,s20:0,s21:2,s22:0,s23:5,totalMayo:2,totalJunio:5,totalGral:7},
+  {tipo:'FLD',local:'L58',patente:'KTGT79',s18:0,s19:0,s20:0,s21:0,s22:0,s23:4,totalMayo:0,totalJunio:4,totalGral:4},
+  {tipo:'FLD',local:'L95',patente:'KZPY29',s18:2,s19:4,s20:3,s21:3,s22:5,s23:7,totalMayo:17,totalJunio:7,totalGral:24},
+  {tipo:'FLD',local:'L95',patente:'FJTT27',s18:2,s19:4,s20:3,s21:3,s22:5,s23:6,totalMayo:17,totalJunio:6,totalGral:23},
+  {tipo:'FLD',local:'L95',patente:'RTXS54',s18:2,s19:4,s20:4,s21:2,s22:4,s23:5,totalMayo:16,totalJunio:5,totalGral:21},
+  {tipo:'FLD',local:'L95',patente:'SJCY30',s18:1,s19:3,s20:4,s21:3,s22:4,s23:6,totalMayo:15,totalJunio:6,totalGral:21},
+  {tipo:'FLD',local:'L95',patente:'VDVB53',s18:1,s19:3,s20:4,s21:2,s22:5,s23:5,totalMayo:15,totalJunio:5,totalGral:20},
+  {tipo:'FLD',local:'L95',patente:'GYKP40',s18:1,s19:3,s20:3,s21:3,s22:4,s23:5,totalMayo:14,totalJunio:5,totalGral:19},
+  {tipo:'FLD',local:'L95',patente:'PDZS86',s18:0,s19:3,s20:3,s21:4,s22:5,s23:4,totalMayo:15,totalJunio:4,totalGral:19},
+  {tipo:'FLD',local:'L95',patente:'RYTC41',s18:0,s19:5,s20:2,s21:1,s22:5,s23:6,totalMayo:13,totalJunio:6,totalGral:19},
+  {tipo:'FLD',local:'L95',patente:'JWDH77',s18:0,s19:4,s20:3,s21:2,s22:3,s23:6,totalMayo:12,totalJunio:6,totalGral:18},
+  {tipo:'FLD',local:'L95',patente:'TPVK74',s18:0,s19:3,s20:3,s21:3,s22:4,s23:4,totalMayo:13,totalJunio:4,totalGral:17},
+  {tipo:'FLD',local:'L98',patente:'PRLG54',s18:2,s19:6,s20:4,s21:2,s22:3,s23:6,totalMayo:17,totalJunio:6,totalGral:23},
+  {tipo:'FLD',local:'L98',patente:'KXKJ82',s18:1,s19:5,s20:4,s21:2,s22:4,s23:5,totalMayo:16,totalJunio:5,totalGral:21},
+  {tipo:'FLD',local:'L98',patente:'JWXL72',s18:0,s19:5,s20:3,s21:3,s22:3,s23:6,totalMayo:14,totalJunio:6,totalGral:20},
+  {tipo:'FLD',local:'L98',patente:'RCLZ94',s18:2,s19:3,s20:3,s21:4,s22:1,s23:6,totalMayo:13,totalJunio:6,totalGral:19},
+  {tipo:'FLD',local:'L98',patente:'LTXC53',s18:0,s19:3,s20:3,s21:2,s22:3,s23:7,totalMayo:11,totalJunio:7,totalGral:18},
+  {tipo:'FLD',local:'L98',patente:'LZJF49',s18:0,s19:0,s20:0,s21:0,s22:3,s23:5,totalMayo:3,totalJunio:5,totalGral:8},
+  {tipo:'FLD',local:'L98',patente:'KTXZ53',s18:0,s19:0,s20:0,s21:2,s22:2,s23:0,totalMayo:4,totalJunio:0,totalGral:4},
+  {tipo:'FLD',local:'L98',patente:'RGWL75',s18:0,s19:0,s20:0,s21:1,s22:2,s23:0,totalMayo:3,totalJunio:0,totalGral:3},
+  {tipo:'FLE',local:'L45',patente:'TTHR19',s18:2,s19:7,s20:5,s21:7,s22:6,s23:6,totalMayo:27,totalJunio:6,totalGral:33},
+  {tipo:'FLE',local:'L45',patente:'TTHR12',s18:2,s19:7,s20:5,s21:4,s22:6,s23:5,totalMayo:24,totalJunio:5,totalGral:29},
+  {tipo:'FLE',local:'L45',patente:'TTHP92',s18:2,s19:3,s20:0,s21:6,s22:7,s23:7,totalMayo:18,totalJunio:7,totalGral:25},
+  {tipo:'FLE',local:'L45',patente:'TTHP95',s18:1,s19:5,s20:4,s21:4,s22:5,s23:4,totalMayo:19,totalJunio:4,totalGral:23},
+  {tipo:'FLE',local:'L45',patente:'TTHP82',s18:1,s19:1,s20:2,s21:5,s22:4,s23:5,totalMayo:13,totalJunio:5,totalGral:18},
+  {tipo:'FLE',local:'L45',patente:'TTHP93',s18:0,s19:2,s20:2,s21:4,s22:5,s23:5,totalMayo:13,totalJunio:5,totalGral:18}
+],
+INHOUSE:[
+  {local:'L120',nombre:'José Javier Villagra Vergara',cargo:'Inhouse',telefono:''},
+  {local:'L120',nombre:'Pamela del Pilar Figueroa Aguilera',cargo:'Inhouse',telefono:''},
+  {local:'L121',nombre:'Gloria Edith Soto Mayorga',cargo:'Inhouse',telefono:''},
+  {local:'L121',nombre:'Pia Monsalve',cargo:'Inhouse',telefono:''},
+  {local:'L45',nombre:'Adriana Katherine Ruiz Sanabria',cargo:'Inhouse',telefono:''},
+  {local:'L45',nombre:'Claudia Alejandra Alvarez Gonzalez',cargo:'Inhouse',telefono:''},
+  {local:'L45',nombre:'Maximiliano Vicente Abrigo Vidal',cargo:'Inhouse',telefono:''},
+  {local:'L45',nombre:'Victor Daniel Valero Gomez',cargo:'Inhouse',telefono:''},
+  {local:'L58',nombre:'Fabian Yerard Soto Soto',cargo:'Inhouse',telefono:''},
+  {local:'L58',nombre:'Macarena Andrea Ibaceta Cabrera',cargo:'Inhouse',telefono:'56941884719'},
+  {local:'L58',nombre:'Rodrigo Orlando Mora Vera',cargo:'Inhouse',telefono:''},
+  {local:'L608',nombre:'Nayaret Jimenez',cargo:'Coordinador',telefono:''},
+  {local:'L608',nombre:'Yesenia Paola Valeria Flores',cargo:'Coordinador',telefono:''},
+  {local:'L618',nombre:'Maria Jose Gomez Coronado',cargo:'Coordinador',telefono:''},
+  {local:'L618',nombre:'Mauricio Emilio Andrade Viveros',cargo:'Coordinador',telefono:''},
+  {local:'L657',nombre:'Estefany Guenchogaray',cargo:'Coordinador',telefono:''},
+  {local:'L657',nombre:'Macarena Donoso Aguilera',cargo:'Coordinador',telefono:''},
+  {local:'L94',nombre:'Makarena Delgado Cardenas',cargo:'Coordinador',telefono:''},
+  {local:'L95',nombre:'Vanessa Scarlette Arancibia Rivas',cargo:'Inhouse',telefono:''},
+  {local:'L98',nombre:'Claudia Monserrat Mendoza Aros',cargo:'Inhouse',telefono:''}
+],
+TARJETAS:[
+  {n:'1',nombre:'JUAN JOSE CASTRO',tarjeta:'11',patente:'HK-WR-69'},
+  {n:'2',nombre:'YONY MENDEZ',tarjeta:'77',patente:'LW-SF-43'},
+  {n:'3',nombre:'RICARDO DONOSO',tarjeta:'132',patente:'KB-GZ-82'},
+  {n:'4',nombre:'JUAN AGUILERA',tarjeta:'133',patente:'JV-HZ-54'},
+  {n:'5',nombre:'MATTEO POBLETE',tarjeta:'197',patente:'HW-CD-86'},
+  {n:'6',nombre:'MACARE IBACETA',tarjeta:'198',patente:'CD-RB-19'},
+  {n:'7',nombre:'DIEGO TAIBA',tarjeta:'206',patente:'PK-ZR-74'},
+  {n:'8',nombre:'NICOLAS PEREZ',tarjeta:'207',patente:'LY-WP-54'},
+  {n:'9',nombre:'FELIPE MENA CONSTANT',tarjeta:'472',patente:'JK-DP-45'},
+  {n:'10',nombre:'PABLO OLIVARES SAAVEDRA',tarjeta:'480',patente:'JL-PZ-25'},
+  {n:'11',nombre:'JORGE LUIS RODRIGUEZ',tarjeta:'503',patente:'GL-BZ-25'},
+  {n:'12',nombre:'MATIAS SALGADO',tarjeta:'547',patente:'RD-KS-16'},
+  {n:'13',nombre:'CARLOS IMBARACK',tarjeta:'2935',patente:'IZ-GV-53'},
+  {n:'14',nombre:'DANIELA PALMA GARRIDO',tarjeta:'3883',patente:'SC-WZ-56'}
+]
+};
+
+// INICIAR
+window.addEventListener('load',()=>loadData(null));
+</script>
+</body>
+</html>
